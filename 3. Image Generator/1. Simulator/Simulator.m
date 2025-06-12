@@ -246,13 +246,13 @@ for r = 1:n_s-1
     z_ET(:,:,r) = EarthTracker(featurePixelLocations(:,:,r).',x_true(7:10),focalLength_ET,pixelSize_ET,imgHeight_ET,imgWidth_ET);
     %---
 
-    %Sensors
-    z_ST(:,r)               = StarTracker(x_true(7:10,r),noise_ST);
-    z_MAG(:,r)              = Magnetometer(x_true(7:10,r),noise_MAG);
-    z_CSS(:,r)              = CoarseSunSensor(x_true(7:10,r),noise_CSS);
-    [z_GYR(:,r), drift_GYR] = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
-    [z_GPS(:,r), drift_GPS] = GPS(x_true(1:3,r),noise_GPS,drift_GPS,driftRate_GPS);
-    %---
+    % % Sensors
+    % z_ST(:,r)               = StarTracker(x_true(7:10,r),noise_ST);
+    % z_MAG(:,r)              = Magnetometer(x_true(7:10,r),noise_MAG);
+    % z_CSS(:,r)              = CoarseSunSensor(x_true(7:10,r),noise_CSS);
+    % [z_GYR(:,r), drift_GYR] = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
+    % [z_GPS(:,r), drift_GPS] = GPS(x_true(1:3,r),noise_GPS,drift_GPS,driftRate_GPS);
+    % % ---
 
     % EKF:
     [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...
