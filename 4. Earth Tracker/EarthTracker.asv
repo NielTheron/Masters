@@ -1,0 +1,36 @@
+%==========================================================================
+% Niel Theron
+% 22-05-2025
+%==========================================================================
+% This is the Earth Tracker
+%==========================================================================
+% Inputs:
+% - feature        : [N x 2] matrix of [x, y] pixel locations (in image coordinates)
+% - GSD            : Ground Sampling Distance (m/pixel)
+% - focal_length   : Focal length of the camera (in mm)
+% - pixel_size     : Size of one pixel (in mm)
+% - pixel_height   : Number of rows in image (vertical resolution)
+% - pixel_width    : Number of columns in image (horizontal resolution)
+%
+% Output:
+% - ET_measurement : [3 x N] matrix of feature vectors in the camera (body) frame, in meters
+%==========================================================================
+
+function ET_measurement = EarthTracker(feature, GSD, focal_length, pixel_size, pixel_height, pixel_width)
+
+    % Number of features
+    N = size(feature, 2);
+
+    x_pixel = zeros(1,N);
+    y_pixel = zeros(1,N);    
+
+    % Estimate depth Z based on geometry and GSD
+    Z = (GSD * focal_length) / pixel_size;  % in meters
+    Z = repmat(Z, 1, N);                    % [1 x N] array
+
+    x_pixel(1,:) = (feature(:, 1).' - pixel_width  / 2) * (pixel_size / focal_length);  % [1 x N]
+    y_pixel(1,:) = (feature(:, 2).' - pixel_height / 2) * (pixel_size / focal_length);  % [1 x N]
+
+    % Construct 3D vectors in camera frame (x, y, z), then convert to meters
+    ET_measurement = [x_pixel .* Z; y_pixel .* Z; Z];
+end
