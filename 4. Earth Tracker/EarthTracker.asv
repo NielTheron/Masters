@@ -1,36 +1,36 @@
+function ET_measurement = EarthTracker(feature, sat_quat, focal_length_m, pixel_size_m, pixel_height, pixel_width)
 %==========================================================================
-% Niel Theron
-% 22-05-2025
-%==========================================================================
-% This is the Earth Tracker
-%==========================================================================
-% Inputs:
-% - feature        : [N x 2] matrix of [x, y] pixel locations (in image coordinates)
-% - GSD            : Ground Sampling Distance (m/pixel)
-% - focal_length   : Focal length of the camera (in mm)
-% - pixel_size     : Size of one pixel (in mm)
-% - pixel_height   : Number of rows in image (vertical resolution)
-% - pixel_width    : Number of columns in image (horizontal resolution)
-%
-% Output:
-% - ET_measurement : [3 x N] matrix of feature vectors in the camera (body) frame, in meters
+% Simplified EarthTracker - Direct ray projection
+% Niel Theron - 12-06-2025
 %==========================================================================
 
-function ET_measurement = EarthTracker(feature, GSD, focal_length, pixel_size, pixel_height, pixel_width)
+N = size(feature, 1);
+ET_measurement = zeros(3, N);
 
-    % Number of features
-    N = size(feature, 2);
+% Camera parameters
+cx = pixel_width / 2;
+cy = pixel_height / 2;
+fx = focal_length_m / pixel_size_m;
 
-    x_pixel = zeros(1,N);
-    y_pixel = zeros(1,N);    
+% Quaternion to rotation matrix
+q = sat_quat / norm(sat_quat);
+qs = q(1); qx = q(2); qy = q(3); qz = q(4);
 
-    % Estimate depth Z based on geometry and GSD
-    Z = (GSD * focal_length) / pixel_size;  % in meters
-    Z = repmat(Z, 1, N);                    % [1 x N] array
+R_body_to_eci = [1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
+                 2*(qx*qy + qs*qz),  1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
+                 2*(qx*qz - qs*qy),  2*(qy*qz + qs*qx),  1 - 2*(qx^2 + qy^2)];
 
-    x_pixel(1,:) = (feature(:, 1).' - pixel_width  / 2) * (pixel_size / focal_length);  % [1 x N]
-    y_pixel(1,:) = (feature(:, 2).' - pixel_height / 2) * (pixel_size / focal_length);  % [1 x N]
+for i = 1:N
+    u = feature(i, 1);
+    v = feature(i, 2);
+    
+    % Convert pixel to camera ray
+    ray_cam = [(u - cx) / fx; -(v - cy) / fx; 1];
+    ray_cam = ray_cam / norm(ray_cam);
+    
+    % Transform to ECI and back to body frame
+    ray_eci = R_body_to_eci * ray_cam;
+    ET_measurement(:, i) = R_body_to_eci' * ray_eci;
+end
 
-    % Construct 3D vectors in camera frame (x, y, z), then convert to meters
-    ET_measurement = [x_pixel .* Z; y_pixel .* Z; Z];
 end

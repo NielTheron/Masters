@@ -129,14 +129,14 @@ P_EKF(:,:,1) = TuneP();                 % Covariance matrix
 %% Initialise Earth Tracker ===============================================
 
 % Initialsie Earth Tracker Varaibles
-n_ET    = 3;                            % Number of measurements
-dt_ET   = 1;                            % Earth tracker sample rate (s)
+n_ET     = 3;                            % Number of measurements
+dt_ET    = 1;                            % Earth tracker sample rate (s)
 noise_ET = 0.1;
-R_ET    = noise_ET*eye(3);              % Measurement Noise Covariance Matrix
+R_ET     = noise_ET*eye(3);              % Measurement Noise Covariance Matrix
 
-z_ET    = zeros(n_ET,n_f,n_s);          % Earth tracker measurement
-y_ET    = zeros(n_ET,n_f,n_s);          % Estimated Earth tracker measurement
-K_ET    = zeros(n_x,n_ET,n_f,n_s);      % Earth tracker Kalman Gain
+z_ET     = zeros(n_ET,n_f,n_s);          % Earth tracker measurement
+y_ET     = zeros(n_ET,n_f,n_s);          % Estimated Earth tracker measurement
+K_ET     = zeros(n_x,n_ET,n_f,n_s);      % Earth tracker Kalman Gain
 
 featurePixelLocations = zeros(2,n_f,n_s); % Feature Pixel Locations (Pixels)
 %---
@@ -193,7 +193,7 @@ noise_GYR   = 0.1;                      % Gyroscope sensor noise (deg)
 R_GYR       = deg2rad(noise_GYR*eye(3));% Gyroscope sensor noise matrix
 driftRate_GYR = 0.01;                   % Gyroscope drift rate (deg/s)
 
-drift_GYR   = zeros(n_GYR,1)            % Gyroscope drift buffer
+drift_GYR   = zeros(n_GYR,1);           % Gyroscope drift buffer
 z_GYR       = zeros(n_GYR,n_s);         % Gyroscope measurement
 y_GYR       = zeros(n_GYR,n_s);         % Gyroscope estimated measurement
 K_GYR       = zeros(n_x,n_GYR,n_s);     % Gyroscope Kalman Gain
@@ -234,32 +234,32 @@ for r = 1:n_s-1
     %---
 
     % Image generator
-    satelliteImage = GenerateSatelliteImage(ax,x_true(1:3,r),x_true(4:6,r),x_true(7:10),imgWidth_cam,imgHeight_cam,focalLength_cam,pixelSize_cam);
+    satelliteImage = GenerateSatelliteImage(ax,x_true(1:3,r),x_true(4:6,r),x_true(7:10,r),imgWidth_cam,imgHeight_cam,focalLength_cam,pixelSize_cam);
     SaveSatelliteImages(satelliteImage,r);
     catalogue_geo(:,:,r) = FeatureGeoDetection(satelliteImage,x_true(1:3,r),x_true(7:10),focalLength_cam,pixelSize_cam,n_f);
     catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r),t);
     %---
 
-    % % Earth Tracker Measruement
-    % [featurePixelLocations(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage,n_f);
-    % SaveFeatureImages(grayImage,feature_pixels,r);
-    % z_ET(:,:,r) = EarthTracker(featurePixelLocations(:,:,r).',GSD_ref,focalLength_ET,pixelSize_ET,imgHeight_ET,imgWidth_ET);
-    % ---
-
-    % %Sensors
-    % z_ST(:,r)               = StarTracker(x_true(7:10,r),noise_ST);
-    % z_MAG(:,r)              = Magnetometer(x_true(7:10,r),noise_MAG);
-    % z_CSS(:,r)              = CoarseSunSensor(x_true(7:10,r),noise_CSS);
-    % [z_GYR(:,r), drift_GYR] = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
-    % [z_GPS(:,r), drift_GPS] = GPS(x_true(1:3,r),noise_GPS,drift_GPS,driftRate_GPS);
+    % Earth Tracker Measruement
+    [featurePixelLocations(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage,n_f);
+    SaveFeatureImages(grayImage,feature_pixels,r);
+    z_ET(:,:,r) = EarthTracker(featurePixelLocations(:,:,r).',x_true(7:10),focalLength_ET,pixelSize_ET,imgHeight_ET,imgWidth_ET);
     %---
 
-    % % EKF:
-    % [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...
-    %     catalogue_eci(:,:,r),x_EKF(:,r),P_EKF(:,:,r),I_f,Q_f,dt_p,Mu_f, ...
-    %     z_ET(:,:,r), z_CSS(:,r), z_MAG(:,r), z_ST(:,r), z_GPS(:,r), z_GYR(:,r), ...
-    %     R_ET, R_CSS, R_MAG, R_ST, R_GPS, R_GYR);
-    % %---
+    %Sensors
+    z_ST(:,r)               = StarTracker(x_true(7:10,r),noise_ST);
+    z_MAG(:,r)              = Magnetometer(x_true(7:10,r),noise_MAG);
+    z_CSS(:,r)              = CoarseSunSensor(x_true(7:10,r),noise_CSS);
+    [z_GYR(:,r), drift_GYR] = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
+    [z_GPS(:,r), drift_GPS] = GPS(x_true(1:3,r),noise_GPS,drift_GPS,driftRate_GPS);
+    %---
+
+    % EKF:
+    [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...
+        catalogue_eci(:,:,r),x_EKF(:,r),P_EKF(:,:,r),I_f,Q_f,dt_p,Mu_f, ...
+        z_ET(:,:,r), z_CSS(:,r), z_MAG(:,r), z_ST(:,r), z_GPS(:,r), z_GYR(:,r), ...
+        R_ET, R_CSS, R_MAG, R_ST, R_GPS, R_GYR);
+    %---
 
     % Progress bar
     elapsedTime = toc(startTime);

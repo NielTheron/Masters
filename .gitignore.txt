@@ -1,7 +1,11 @@
 # Specific image files
-3. Image Generator\RenderEarth\Earth.jpg
-3. Image Generator\RenderEarth\ParisStrip.tif
+3. Image Generator/RenderEarth/Earth.jpg
+3. Image Generator/RenderEarth/ParisStrip.tif
 
 # Image directories
 3. Image Generator/SatelliteImages/
 3. Image Generator/FeatureImages/
+
+# Specific video files
+8. Plot/satellite_video.mp4
+8. Plot/feature_video.mp4

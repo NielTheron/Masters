@@ -1,9 +1,9 @@
 function MakeFeatureVideo(dt)
 
-outputFolder = fullfile('C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\2. Methodology\Masters\FullSystemV6\8. Plots');
+outputFolder = fullfile('C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\8. Plots\Videos');
 
 % Settings
-imageFolder = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\2. Methodology\Masters\FullSystemV6\3. Image Generator\FeatureImages';
+imageFolder = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\FeatureImages';
 outputVideoName = 'feature_video.mp4';
 videoPath = fullfile(outputFolder,outputVideoName);
 frameRate = 1/dt;  % frames per second
