@@ -1,7 +1,7 @@
 %==========================================================================
 % Simulator
 % Niel Theron
-% 05-06-2025
+% 12-06-2025
 %==========================================================================
 
 %% Load Functions =========================================================
@@ -72,13 +72,16 @@ x_true(:,1) = [r_p v_p q_p w_p].';      % True state
 ax = RenderEarth();
 %---
 
+% Initialise Camera Varaibles
+catalogue_geo   = zeros(2,n_f,n_s);     % Catalogue
+catalogue_eci   = zeros(3,n_f,n_s);     % Catalogue
+%---
+
 % Camera Variables
 imgWidth_cam    = 720;                  % Along track image width (pixels)
 imgHeight_cam   = 720;                  % Cross-track image height (pixels)
 focalLength_cam = 0.58;                 % Focal length (m)
 pixelSize_cam   = 17.4e-6;              % Pixel size (m)
-catalogue_geo   = zeros(2,n_f,n_s);     % Catalogue
-catalogue_eci   = zeros(3,n_f,n_s);     % Catalogue
 %---
 
 %==========================================================================
@@ -144,10 +147,10 @@ featurePixelLocations = zeros(2,n_f,n_s); % Feature Pixel Locations (Pixels)
 % Earth Tracker Constants
 GSD_ref         = 15;                   % Ground sampling distance (m/pixel)
 alt_ref         = 500;                  % Altitude (km)
-focalLength_ET  = 0.58;                 % Focal length (m)
-pixelSize_ET    = 17.4e-6;              % Pixel size (m)
 imgWidth_ET     = 720;                  % Along track image width (pixels)
 imgHeight_ET    = 720;                  % Cross-track image height (pixels)
+focalLength_ET  = 0.58;                 % Focal length (m)
+pixelSize_ET    = 17.4e-6;              % Pixel size (m)
 %---
 
 %==========================================================================
@@ -213,7 +216,7 @@ K_GPS       = zeros(n_x,n_GPS,n_s);     % GPS Kalman Gain
 %----
 
 %==========================================================================
-%% Run Simulation
+%% Initialise Simulation ==================================================
 
 % Progress bar
 fig = uifigure('Name','Simulation Progress');
@@ -222,7 +225,8 @@ d = uiprogressdlg(fig, 'Title','Running Simulation', ...
 startTime = tic;
 %---
 
-% Simulation
+%==========================================================================
+%% Run Simulation
 for r = 1:n_s-1
 
     % Varaibles

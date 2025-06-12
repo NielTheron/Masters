@@ -46,7 +46,7 @@ function ax = RenderEarth()
     a = 6378.137;    % Equatorial radius [km]
     b = 6356.752;    % Polar radius [km]
 
-    n = 400;
+    n = 200;
     [xs, ys, zs] = sphere(n);
 
     fig = figure('Color', 'k', 'Visible', 'off');

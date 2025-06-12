@@ -8,7 +8,7 @@
 
 function CleanFolders()
     % Clear satellite Images
-    folderPath = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\2. Methodology\Masters\FullSystemV6\3. Image Generator\SatelliteImages'; % **IMPORTANT: Replace with your actual folder path**
+    folderPath = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\SatelliteImages'; % **IMPORTANT: Replace with your actual folder path**
     if exist(folderPath, 'dir')
         rmdir(folderPath, 's'); % 's' option removes the directory and all its contents
     end
@@ -17,7 +17,7 @@ function CleanFolders()
     %---
 
     % Clear feature Images
-    folderPath = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\2. Methodology\Masters\FullSystemV6\3. Image Generator\FeatureImages'; % **IMPORTANT: Replace with your actual folder path**
+    folderPath = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\FeatureImages'; % **IMPORTANT: Replace with your actual folder path**
     if exist(folderPath, 'dir')
     rmdir(folderPath, 's'); % 's' option removes the directory and all its contents
     end
