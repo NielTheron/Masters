@@ -1,41 +1,7 @@
+function Image = GenerateSatelliteImage(ax, r_sat, v_sat, q_body_to_eci, imgWidth, imgHeight, focalLength, pixelSize)
 %==========================================================================
-% Niel Theron
-% 05-06-2025
-%==========================================================================
-% The purpose of this function is given the camera parameters and the
-% satellite position to create a satellite image
-%==========================================================================
-% INPUT:
-% ax            : Axes object to draw the image
-% r_sat         : Position vector (km) (3x1) - Satellite position in ECEF
-% v_sat         : Velocity vector (km/s) (3x1) - Satellite velocity in ECEF (for robust LVLH)
-%                 If not provided or zero, a simplified LVLH is used.
-% q_orbital_to_body : Quaternion representing the rotation from the orbital
-%                 (LVLH) frame to the body frame. (4x1, scalar first [qw; vx; vy; vz])
-% imgWidth      : The along track image size (pixels)
-% imgHeight     : The cross-track image size (pixels)
-% focalLength   : The focal length of the camera (m)
-% pixelSize     : The size of a pixel (m)
-%
-% OUTPUT:
-% Image         : The Satellite Image
-%
-% VARIABLES:
-% sat_lla       : Satellite LLA position vector (deg,deg,km) (3x1)
-% nadir_lla     : Point directly underneath Satellite (deg,deg,km) (3x1)
-% r_nadir       : Target position vector (km) (3x1)
-% viewDirection : The direction the camera is viewing
-% upVector      : Vector that indicates the up direction of the satellite
-% sensorWidth   : The width of the image capturing sensor (m)
-% sensorHeight  : The height of the image capuring sensor (m)
-% fov_v         : The vertical FOV of the camera (deg)
-% frame         : The image in another form
-%==========================================================================
-
-function Image = GenerateSatelliteImage(ax, r_sat, v_sat, q_orbital_to_body, imgWidth, imgHeight, focalLength, pixelSize)
-%==========================================================================
-% Simplified Satellite Image Generator
-% Niel Theron - 12-06-2025
+% Satellite Image Generator for New Body Frame Convention
+% Body Frame: +X=along-track, +Y=anti-velocity, +Z=nadir
 %==========================================================================
 
     % Set Up Figure
@@ -51,42 +17,73 @@ function Image = GenerateSatelliteImage(ax, r_sat, v_sat, q_orbital_to_body, img
     pbaspect(ax, [imgWidth imgHeight 1]);
     daspect(ax, [1 1 1]);
 
-    % Define LVLH Frame (Z=nadir, X=along-track, Y=cross-track)
-    e_z_LVLH = -r_sat / norm(r_sat);                    % Nadir
+    %======================================================================
+    % STEP 1: Define LVLH (Orbital) Frame
+    %======================================================================
+    e_z_LVLH = -r_sat / norm(r_sat);                    % Nadir (toward Earth)
     r_unit = r_sat / norm(r_sat);
     v_perp = v_sat - dot(v_sat, r_unit) * r_unit;
     e_x_LVLH = v_perp / norm(v_perp);                   % Along-track
     e_y_LVLH = cross(e_z_LVLH, e_x_LVLH);               % Cross-track
     
-    % LVLH to ECEF rotation matrix
-    R_LVLH_to_ECEF = [e_x_LVLH, e_y_LVLH, e_z_LVLH];
+    R_LVLH_to_ECI = [e_x_LVLH, e_y_LVLH, e_z_LVLH];
 
-    % Camera directions in body frame
-    camera_view_direction_body = [0; 0; 1];             % Look along +Z (nadir)
-    camera_up_direction_body = [0; -1; 0];              % Up is -Y
+    %======================================================================
+    % STEP 2: Convert Quaternions  
+    %======================================================================
+    q_norm = q_body_to_eci / norm(q_body_to_eci);
+    qs = q_norm(1); qx = q_norm(2); qy = q_norm(3); qz = q_norm(4);
+    
+    R_body_to_eci = [1-2*(qy^2+qz^2), 2*(qx*qy-qs*qz), 2*(qx*qz+qs*qy);
+                     2*(qx*qy+qs*qz), 1-2*(qx^2+qz^2), 2*(qy*qz-qs*qx);
+                     2*(qx*qz-qs*qy), 2*(qy*qz+qs*qx), 1-2*(qx^2+qy^2)];
+    
+    R_ECI_to_LVLH = R_LVLH_to_ECI';
+    R_orbital_to_body = R_body_to_eci * R_ECI_to_LVLH;
+
+    %======================================================================
+    % STEP 3: Camera Orientation - Body Frame Aligned with Orbital Frame
+    %======================================================================
+    % Now body frame = orbital frame, so:
+    % Body +X = along-track, Body +Y = cross-track, Body +Z = nadir (toward Earth)
+    
+    camera_view_direction_body = [0; 0; 1];    % Look along +Z (toward Earth) ✅
+    camera_up_direction_body = [0; -1; 0];     % Up is -Y (anti-cross-track)
 
     % Apply body rotation
-    R_body_to_LVLH = quat2rotm(q_orbital_to_body');
+    R_body_to_LVLH = R_orbital_to_body';
     viewDirection_LVLH = R_body_to_LVLH * camera_view_direction_body;
     upVector_LVLH = R_body_to_LVLH * camera_up_direction_body;
 
-    % Transform to ECEF
-    viewDirection_ecef = R_LVLH_to_ECEF * viewDirection_LVLH;
-    upVector_ecef = R_LVLH_to_ECEF * upVector_LVLH;
+    % Transform to ECI
+    viewDirection_eci = R_LVLH_to_ECI * viewDirection_LVLH;
+    upVector_eci = R_LVLH_to_ECI * upVector_LVLH;
 
-    % Set MATLAB camera
+    %======================================================================
+    % STEP 4: Set Camera
+    %======================================================================
     campos(ax, r_sat');
-    camtarget(ax, (r_sat + viewDirection_ecef * 1000)');
+    target_distance = 1000;
+    camtarget(ax, (r_sat + viewDirection_eci * target_distance)');
     camproj(ax, 'perspective');
-    camup(ax, upVector_ecef');
+    camup(ax, upVector_eci');
 
     % Set FOV
     fov_v = 2 * atand((imgHeight * pixelSize / 2) / focalLength);
     set(ax, 'CameraViewAngleMode', 'manual');
     camva(ax, fov_v);
 
-    % Capture image
+    %======================================================================
+    % STEP 5: Capture Image
+    %======================================================================
     drawnow;
     frame = getframe(ax);
     Image = imresize(frame.cdata, [imgHeight, imgWidth]);
+    
+    %======================================================================
+    % Debug output (optional)
+    %======================================================================
+    % fprintf('Body frame: +X=along-track, +Y=anti-velocity, +Z=nadir\n');
+    % fprintf('Camera pointing along body +Z toward Earth\n');
+    
 end
