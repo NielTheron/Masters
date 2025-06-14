@@ -274,8 +274,8 @@ for r = 1:n_s-1
     %---
 
     % % Earth Tracker Measruement
-    % [featurePixelLocations(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage,n_f);
-    % SaveFeatureImages(grayImage,feature_pixels,r);
+    [featurePixelLocations(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage,n_f);
+    SaveFeatureImages(grayImage,feature_pixels,r);
     % z_ET(:,:,r) = EarthTracker(featurePixelLocations(:,:,r).',x_true(7:10),focalLength_ET,pixelSize_ET,imgHeight_ET,imgWidth_ET);
     % %---
 
