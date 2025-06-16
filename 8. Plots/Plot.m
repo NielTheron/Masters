@@ -26,16 +26,20 @@ addpath("8. Plots\Videos")
 % PlotMeasurement(z_ET,n_f,dt_p)
 % PlotEstimatedMeasurement(y_ET,n_f,dt_p)
 % PlotMeasurementError(z_ET,y_ET,n_f,dt)
-% Plot3D(x_true)
+Plot3D(x_true)
 % PlotSensors(x_true,dt,ST_measurement,MAG_measurement,CSS_measurement)
 % PlotGyro(x_true,dt,GYR_measurement)
 % PlotGPS(x_true,dt,GPS_measurement)
 % PlotSatelliteImage(satellite_image)
 % PlotFeatureDetectedImage(grayImage,feature_pixels)
 % MakeFeatureVideo(dt)
-MakeVideo(dt_p)
+% MakeVideo(dt_p)
 % PlotCatalogueGeo(catalogue_geo,10)
 % PlotCatalogueECI(catalogue_eci,120)
 %---
 
 %==========================================================================
+
+% AnimatedSatelliteOrbit(x_true,dt_p)
+% Plot3D2(x_true)
+

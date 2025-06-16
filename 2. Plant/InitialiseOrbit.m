@@ -1,49 +1,44 @@
+function [r_eci, v_eci] = InitialiseOrbit(lat_deg, lon_deg, alt_km)
 %==========================================================================
-% Niel Theron
-% 05-06-2025
-%==========================================================================
-% The purpose of this function is to take a lat long coordinate and make a
-% proper circular orbit initial condition based of the height.
+% Generates a circular orbit at a given latitude, longitude, and altitude,
+% where the velocity is purely eastward (tangent to local parallel).
 %==========================================================================
 % INPUT:
-% lat          :Lattitude (deg)
-% lon          :Longitude (deg)
-% alt          :Altitude (km)
-%
-% OUPUT:
-% r            :Position vector (km)
-% v            :Velocity vector (km/s)
-%
-% VARAIBELS:
-% ref_dir      :Reference direction [x,y,z] (ECI)
-% r_mag        :Magnitude of position vector
-% v_mag        :Magnitude of velocity vector
-% v_dir        :Direction of the velocity vector
-%
-% CONSTANTS:
-% Mu_earth     :Gravitational parameter (km3/s2)
+% lat_deg    : Latitude [deg]
+% lon_deg    : Longitude [deg]
+% alt_km     : Altitude above sea level [km]
+% OUTPUT:
+% r_eci      : Position vector in ECI [km]
+% v_eci      : Velocity vector in ECI [km/s]
 %==========================================================================
 
-function [r, v] = InitialiseOrbit(lat, lon, alt)
+% Constants
+mu_earth = 398600.4418;     % [km^3/s^2]
+Re = 6378.137;              % [km] Earth radius
 
-% Refrence Direction
-ref_dir = [0 0 1];
-%---
+% Convert lat/lon to radians
+lat = deg2rad(lat_deg);
+lon = deg2rad(lon_deg);
 
-% Work out initial conditions
-r = lla2ecef([lat,lon,alt*1000],"WGS84")/1000;
-Mu_earth = 398600.4418;
-r_mag = norm(r);
-v_mag = sqrt(Mu_earth / r_mag);
-%---
+% Compute ECEF position (assuming spherical Earth)
+r_ecef = [(Re + alt_km)*cos(lat)*cos(lon);
+          (Re + alt_km)*cos(lat)*sin(lon);
+          (Re + alt_km)*sin(lat)];
 
-% Cross product gives orthogonal direction
-v_dir = cross(ref_dir,r);
-v_dir = v_dir / norm(v_dir);  % normalize
-%---
+% Rotate ECEF to ECI (assuming time = 0, so ECI = ECEF for now)
+r_eci = r_ecef.';
 
-% Scale to orbital speed
-v = v_mag * v_dir;
-%---
+% Local East Unit Vector in ECEF (and ECI at time 0)
+east_ecef = [-sin(lon);
+              cos(lon);
+              0];
+east_unit = east_ecef / norm(east_ecef);
+
+% Orbital speed for circular orbit
+r_mag = norm(r_eci);
+v_mag = sqrt(mu_earth / r_mag);
+
+% Velocity vector: due east
+v_eci = (v_mag * east_unit).';
 
 end

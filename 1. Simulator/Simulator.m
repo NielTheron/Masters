@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-simulationTime  = 15;                   % Simulation time (s)
+simulationTime  = 3000;                   % Simulation time (s)
 dt_p            = 0.1;                  % Sample rate (s)
 n_s = simulationTime/dt_p;              % Number of samples
 n_f             = 20;                   % Number of features
@@ -34,13 +34,13 @@ x_true  = zeros(n_x,n_s);               % Initialise plant states
 % Plant Constants
 Mu_p = 398600;                          % Gravitational parameter (km3/s2)
 Re_p = 6378;                            % Radius of Earth (km)
-J2_p = 1.08263e-3;                      % J2 parameter
+J2_p = 0; %1.08263e-3;                      % J2 parameter
 I_p  = [1 1 1].';                       % Moment of inertia (kg*m2)
 we_p = 7.2921159e-5;                    % Rotational speed of earth (rad/s)
 %---
 
 % Initial States
-lat_p       = 48.858715;                % Lattitude (deg) 
+lat_p       = 48.858;                % Lattitude (deg) 
 lon_p       = 1.66;                     % Longitude (deg)
 alt_p       = 500;                      % Altitude (km)
 yaw_p       = 0;                        % Yaw (deg)
@@ -50,37 +50,6 @@ yawRate_p   = 0;                        % Yaw rate (deg/s)
 pitchRate_p = 0;                        % Pitch rate (deg/s)
 rollRate_p  = 0;                        % Roll rate (deg/s)
 %---
-
-% Goal: q_orbital_to_body = [1,0,0,0] (identity)
-% This means: Body frame = Orbital frame
-% In orbital frame: +X=along-track, +Y=cross-track, +Z=nadir (toward Earth)
-
-% Calculate orbital position and velocity
-[r_int, v_int] = InitialiseOrbit(lat_p, lon_p, alt_p);
-
-% Define orbital (LVLH) frame vectors in ECI coordinates
-z_orbital_eci = -r_int / norm(r_int);                          % Nadir (toward Earth)
-r_unit = r_int / norm(r_int);
-v_perp = v_int - dot(v_int, r_unit) * r_unit;
-x_orbital_eci = v_perp / norm(v_perp);                         % Along-track (velocity direction)
-y_orbital_eci = cross(z_orbital_eci, x_orbital_eci);           % Cross-track
-
-% Create 3x3 rotation matrix: Orbital frame to ECI frame
-% Each COLUMN represents an orbital frame axis expressed in ECI coordinates
-R_orbital_to_eci = [x_orbital_eci.', y_orbital_eci.', z_orbital_eci.'];
-
-% Since we want body frame = orbital frame:
-R_body_to_eci = R_orbital_to_eci;
-
-% Convert to quaternion (body-to-ECI)
-q_body_to_eci = rotm2quat(R_body_to_eci);
-
-% Initial states
-r_p = r_int;                            % Position (km)
-v_p = v_int;                            % Velocity (km/s)  
-q_p = q_body_to_eci;                    % Quaternions (body-to-ECI)
-w_p = deg2rad([rollRate_p ...
-    yawRate_p pitchRate_p]);            % Angular velocity (rad/s)
 
 % Initialise Plant
 x_true(:,1) = [r_p v_p q_p w_p].';      % True state
@@ -223,7 +192,7 @@ n_GYR       = 3;                        % Number of measurements
 dt_GYR      = 1;                        % Gyroscope sampling samping rate (s)
 noise_GYR   = 0.1;                      % Gyroscope sensor noise (deg)
 R_GYR       = deg2rad(noise_GYR*eye(3));% Gyroscope sensor noise matrix
-driftRate_GYR = 0.01;                   % Gyroscope drift rate (deg/s)
+driftRate_GYR = 1;                      % Gyroscope drift rate (deg/s)
 
 drift_GYR   = zeros(n_GYR,1);           % Gyroscope drift buffer
 z_GYR       = zeros(n_GYR,n_s);         % Gyroscope measurement
@@ -236,7 +205,7 @@ n_GPS       = 3;                        % Number of measurements
 dt_GPS      = 1;                        % GPS sampling samping rate (s)
 noise_GPS   = 0.1;                      % GPS sensor noise (km)
 R_GPS       = noise_GPS*eye(3);         % GPS noise matrix
-driftRate_GPS   = 0.01;                     % GPS drift rate (km)
+driftRate_GPS   = 0.01;                 % GPS drift rate (km)
 
 drift_GPS   = zeros(n_GPS,1);           % GPS drift buffer
 z_GPS       = zeros(n_GPS,n_s);         % GPS measurement
@@ -257,7 +226,6 @@ startTime = tic;
 %==========================================================================
 %% Run Simulation
 for r = 1:n_s-1
-
     % Varaibles
     t = r*dt_p;
     %---
@@ -267,15 +235,15 @@ for r = 1:n_s-1
     %---
 
     % Image generator
-    satelliteImage = GenerateSatelliteImage(ax,x_true(1:3,r),x_true(4:6,r),x_true(7:10,r),imgWidth_cam,imgHeight_cam,focalLength_cam,pixelSize_cam);
-    SaveSatelliteImages(satelliteImage,r);
-    catalogue_geo(:,:,r) = FeatureGeoDetection(satelliteImage,x_true(1:3,r),x_true(7:10),focalLength_cam,pixelSize_cam,n_f);
-    catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r),t);
+    % satelliteImage = GenerateSatelliteImage(ax,x_true(1:3,r),x_true(4:6,r),x_true(7:10,r),imgWidth_cam,imgHeight_cam,focalLength_cam,pixelSize_cam);
+    % SaveSatelliteImages(satelliteImage,r);
+    % catalogue_geo(:,:,r) = FeatureGeoDetection(satelliteImage,x_true(1:3,r),x_true(7:10),focalLength_cam,pixelSize_cam,n_f);
+    % catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r),t);
     %---
 
     % % Earth Tracker Measruement
-    [featurePixelLocations(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage,n_f);
-    SaveFeatureImages(grayImage,feature_pixels,r);
+    % [featurePixelLocations(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage,n_f);
+    % SaveFeatureImages(grayImage,feature_pixels,r);
     % z_ET(:,:,r) = EarthTracker(featurePixelLocations(:,:,r).',x_true(7:10),focalLength_ET,pixelSize_ET,imgHeight_ET,imgWidth_ET);
     % %---
 
