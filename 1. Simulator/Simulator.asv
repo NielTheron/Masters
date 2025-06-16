@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-simulationTime  = 6000;                   % Simulation time (s)
+simulationTime  = 3000;                   % Simulation time (s)
 dt_p            = 0.1;                  % Sample rate (s)
 n_s = simulationTime/dt_p;              % Number of samples
 n_f             = 20;                   % Number of features
@@ -40,8 +40,8 @@ we_p = 7.2921159e-5;                    % Rotational speed of earth (rad/s)
 %---
 
 % Initial States
-lat_p       = -25.859828346771202;               % Lattitude (deg) 
-lon_p       = 28.454079852746162;                      % Longitude (deg)
+lat_p       = 48.858;                % Lattitude (deg) 
+lon_p       = 1.66;                     % Longitude (deg)
 alt_p       = 500;                      % Altitude (km)
 yaw_p       = 0;                        % Yaw (deg)
 pitch_p     = 0;                        % Pitch (deg)
@@ -51,35 +51,7 @@ pitchRate_p = 0;                        % Pitch rate (deg/s)
 rollRate_p  = 0;                        % Roll rate (deg/s)
 %---
 
-% Goal: q_orbital_to_body = [1,0,0,0] (identity)
-% This means: Body frame = Orbital frame
-% In orbital frame: +X=along-track, +Y=cross-track, +Z=nadir (toward Earth)
-
-% Calculate orbital position and velocity
-[r_int, v_int] = InitialiseOrbit(lat_p, lon_p, alt_p);
-
-% Define orbital (LVLH) frame vectors in ECI coordinates
-z_orbital_eci = -r_int / norm(r_int);                          % Nadir (toward Earth)
-r_unit = r_int / norm(r_int);
-v_perp = v_int - dot(v_int, r_unit) * r_unit;
-x_orbital_eci = v_perp / norm(v_perp);                         % Along-track (velocity direction)
-y_orbital_eci = cross(z_orbital_eci, x_orbital_eci);           % Cross-track
-
-% Create 3x3 rotation matrix: Orbital frame to ECI frame
-% Each COLUMN represents an orbital frame axis expressed in ECI coordinates
-R_orbital_to_eci = [x_orbital_eci.', y_orbital_eci.', z_orbital_eci.'];
-
-% Since we want body frame = orbital frame:
-R_body_to_eci = R_orbital_to_eci;
-
-% Convert to quaternion (body-to-ECI)
-q_body_to_eci = rotm2quat(R_body_to_eci);
-
-% Initial states
-r_p = r_int;                            % Position (km)
-v_p = v_int;                            % Velocity (km/s)  
-q_p = q_body_to_eci;                    % Quaternions (body-to-ECI)
-w_p = deg2rad([rollRate_p pitchRate_p yawRate_p]); % [wx, wy, wz]           % Angular velocity (rad/s)
+v
 
 % Initialise Plant
 x_true(:,1) = [r_p v_p q_p w_p].';      % True state

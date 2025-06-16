@@ -180,10 +180,6 @@ zlabel('Z (ECI)');
 title(options.title_text);
 grid on;
 
-% Add legend
-if options.show_all_axes || options.show_start_end
-    legend('Location', 'best');
-end
 
 % Set view angle for better visualization
 view(45, 30);
