@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-simulationTime  = 15;                   % Simulation time (s)
+simulationTime  = 6000;                   % Simulation time (s)
 dt_p            = 0.1;                  % Sample rate (s)
 n_s = simulationTime/dt_p;              % Number of samples
 n_f             = 20;                   % Number of features
@@ -33,7 +33,7 @@ x_true = zeros(n_x,n_s);        % Initialise plant states
 % Plant Constants
 Mu_p = 398600;                  % Gravitational parameter (km3/s2)
 Re_p = 6378;                    % Radius of Earth (km)
-J2_p = 0;                       %1.08263e-3; % J2 parameter
+J2_p = 1.08263e-3;              % J2 parameter
 I_p = [1 1 1].';                % Moment of inertia (kg*m2)
 we_p = 7.2921159e-5;            % Rotational speed of earth (rad/s)
 %---
@@ -240,19 +240,19 @@ for r = 1:n_s-1
     %---
     
     % Image generator (uses current attitude from state vector)
-    satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam, GSD_ET);
-    SaveSatelliteImages(satelliteImage,r);
+    satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
+    % SaveSatelliteImages(satelliteImage,r);
     %---
     
-    % Feature geo-detection (fixed missing index)
-    % catalogue_geo(:,:,r) = FeatureGeoDetection(satelliteImage, x_true(1:3,r), x_true(7:10,r), focalLength_cam, pixelSize_cam, n_f);
-    % catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r), t);
+    % Feature geo-detection
+    catalogue_geo(:,:,r) = FeatureGeoDetection(satelliteImage, x_true(1:3,r), x_true(7:10,r), focalLength_cam, pixelSize_cam, n_f);
+    catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r),we_p, t);
     %---
     
     % Earth Tracker Measurement
-    % [f_m(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage, n_f);
-    % SaveFeatureImages(grayImage, feature_pixels, r);
-    % z_ET(:,:,r) = EarthTracker(f_m(:,:,r).', x_true(7:10,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET);
+    [f_m(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage, n_f);
+    SaveFeatureImages(grayImage, feature_pixels, r);
+    z_ET(:,:,r) = EarthTracker(f_m(:,:,r).', x_true(7:10,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
     %---
 
     % % EKF:
@@ -268,8 +268,8 @@ for r = 1:n_s-1
     estTotalTime = elapsedTime / progress;
     estRemaining = estTotalTime - elapsedTime;
     d.Value = progress;
-    d.Message = sprintf('Elapsed: %.2fs | %d%% | Est. remaining: %.2fs | Sample: %d', ...
-        elapsedTime, round(progress*100), estRemaining,r+1);
+    d.Message = sprintf('Elapsed: %.2fs | %d%% | Est. remaining: %.2fs | Sample: %d | Footage Time: %.2fs', ...
+        elapsedTime, round(progress*100), estRemaining,r+1,t);
     %---
 end
 %--

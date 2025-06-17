@@ -8,8 +8,8 @@ function [r_eci, v_eci] = InitialiseOrbit(lat_deg, lon_deg, alt_km)
 % lon_deg    : Longitude [deg]
 % alt_km     : Altitude above sea level [km]
 % OUTPUT:
-% r_eci      : Position vector in ECI [km]
-% v_eci      : Velocity vector in ECI [km/s]
+% r_eci      : Position vector in ECI [km] - COLUMN VECTOR [3x1]
+% v_eci      : Velocity vector in ECI [km/s] - COLUMN VECTOR [3x1]
 %==========================================================================
 
 % Constants
@@ -21,11 +21,13 @@ lon = deg2rad(lon_deg);
 %---
 
 % Compute ECEF position (assuming spherical Earth)
-r_ecef = geodetic2ecef(wgs84Ellipsoid('km'),lat_deg,lon_deg,alt_km);
+[x,y,z] = geodetic2ecef(wgs84Ellipsoid('km'),lat_deg,lon_deg,alt_km);
 %---
 
-% Rotate ECEF to ECI (ECI = ECEF at time = 0
-r_eci = r_ecef.';
+r_ecef=[x;y;z];
+
+% Convert to ECI (ECI = ECEF at time = 0) - ENSURE COLUMN VECTOR
+r_eci = r_ecef(:);  % Force column vector
 %---
 
 % Local East Unit Vector in ECEF (and ECI at time 0)
@@ -40,8 +42,8 @@ r_mag = norm(r_eci);
 v_mag = sqrt(mu_earth / r_mag);
 %---
 
-% Velocity vector: due east
-v_eci = (v_mag * east_unit).';
+% Velocity vector: due east - ENSURE COLUMN VECTOR
+v_eci = v_mag * east_unit;  % Already a column vector, no transpose needed
 %---
 
 end

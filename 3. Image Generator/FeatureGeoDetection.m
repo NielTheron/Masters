@@ -66,7 +66,7 @@ dx_m = dx * GSD;  % x is image right
 dy_m = dy * GSD;  % y is image up
 
 % Rotate offsets according to heading
-eul_body_to_enu = quat2eul(q, 'XYZ');
+eul_body_to_enu = quat2eul(q.', 'XYZ');
 theta = eul_body_to_enu(1);
 east_offsets  = dx_m * cos(theta) - dy_m * sin(theta); % East direction
 north_offsets = dx_m * sin(theta) + dy_m * cos(theta); % North direction

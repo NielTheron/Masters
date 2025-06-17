@@ -19,6 +19,10 @@ function [r_p, v_p, q_bod_to_eci, w_B_I] = InitialiseOrbitAligned(lat_p, lon_p, 
 
 % Calculate orbital position and velocity (eastward velocity)
 [r_int, v_int] = InitialiseOrbit(lat_p, lon_p, alt_p);
+
+% Ensure vectors are column vectors
+r_int = r_int(:);
+v_int = v_int(:);
 %---
 
 % Define orbital (LVLH) frame vectors in ECI coordinates
@@ -30,7 +34,7 @@ y_orbital_eci = cross(z_orbital_eci, x_orbital_eci);% Cross-track
 %---
 
 % Body frame = Orbital frame (perfect alignment)
-R_bod_to_eci = [x_orbital_eci.', y_orbital_eci.', z_orbital_eci.'];
+R_bod_to_eci = [x_orbital_eci.'; y_orbital_eci.'; z_orbital_eci.'];
 q_bod_to_eci = rotm2quat(R_bod_to_eci);
 %---
 
@@ -47,7 +51,7 @@ w_O_I_in_B = w_O_I_in_O; % Since body = orbital frame initially
 % Total angular velocity: Body relative to inertial
 w_B_I = w_B_O + w_O_I_in_B;
 
-% Set outputs
+% Set outputs (ensure column vectors)
 r_p = r_int(:);
 v_p = v_int(:);
 

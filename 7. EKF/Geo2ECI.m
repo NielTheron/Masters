@@ -1,4 +1,4 @@
-function catalogue_eci = Geo2ECI(catalogue_geo, t)
+function catalogue_eci = Geo2ECI(catalogue_geo, we, t)
 %==========================================================================
 % Niel Theron
 % Convert Geographic Catalogue to ECI Coordinates
