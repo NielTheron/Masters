@@ -15,7 +15,6 @@ function catalogue_eci = Geo2ECI(catalogue_geo, we, t)
 %==========================================================================
 
 % Earth rotation parameters
-we = 7.2921159e-5;          % Earth rotation rate (rad/s)
 R_earth = 6378.137;         % WGS84 Earth radius (km)
 theta_earth = we * t;       % Earth rotation angle from simulation start
 
@@ -27,16 +26,8 @@ catalogue_eci = zeros(3, n_f);
 
 % Convert each feature
 for i = 1:n_f
-    % Extract lat/lon in radians
-    lat_rad = deg2rad(catalogue_geo(1, i));
-    lon_rad = deg2rad(catalogue_geo(2, i));
-    alt_km = 0; % Assume ground level features
-    
-    % Convert to ECEF coordinates (km)
-    x_ecef = (R_earth + alt_km) * cos(lat_rad) * cos(lon_rad);
-    y_ecef = (R_earth + alt_km) * cos(lat_rad) * sin(lon_rad);
-    z_ecef = (R_earth + alt_km) * sin(lat_rad);
-    f_ecef = [x_ecef; y_ecef; z_ecef];
+    [x,y,z] = geodetic2ecef(wgs84Ellipsoid('km'),catalogue_geo(1, i),catalogue_geo(2, i),0);
+    f_ecef = [x;y;z];
     
     % Convert ECEF to ECI (account for Earth rotation)
     R_ecef_to_eci = [cos(theta_earth), -sin(theta_earth), 0;
