@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-simulationTime  = 6000;                   % Simulation time (s)
+simulationTime  = 15;                   % Simulation time (s)
 dt_p            = 0.1;                  % Sample rate (s)
 n_s = simulationTime/dt_p;              % Number of samples
 n_f             = 20;                   % Number of features
@@ -25,64 +25,47 @@ n_f             = 20;                   % Number of features
 
 %==========================================================================
 %% Initialise Plant =======================================================
-
 % Plant Variables
-n_x     = 13;                           % Number of states
-x_true  = zeros(n_x,n_s);               % Initialise plant states
+n_x = 13;                       % Number of states
+x_true = zeros(n_x,n_s);        % Initialise plant states
 %---
 
 % Plant Constants
-Mu_p = 398600;                          % Gravitational parameter (km3/s2)
-Re_p = 6378;                            % Radius of Earth (km)
-J2_p = 0; %1.08263e-3;                      % J2 parameter
-I_p  = [1 1 1].';                       % Moment of inertia (kg*m2)
-we_p = 7.2921159e-5;                    % Rotational speed of earth (rad/s)
+Mu_p = 398600;                  % Gravitational parameter (km3/s2)
+Re_p = 6378;                    % Radius of Earth (km)
+J2_p = 0;                       %1.08263e-3; % J2 parameter
+I_p = [1 1 1].';                % Moment of inertia (kg*m2)
+we_p = 7.2921159e-5;            % Rotational speed of earth (rad/s)
 %---
 
 % Initial States
-lat_p       = -25.859828346771202;               % Lattitude (deg) 
-lon_p       = 28.454079852746162;                      % Longitude (deg)
-alt_p       = 500;                      % Altitude (km)
-yaw_p       = 0;                        % Yaw (deg)
-pitch_p     = 0;                        % Pitch (deg)
-roll_p      = 0;                        % Roll (deg)
-yawRate_p   = 0;                        % Yaw rate (deg/s)
-pitchRate_p = 0;                        % Pitch rate (deg/s)
-rollRate_p  = 0;                        % Roll rate (deg/s)
+lat_p = 48.858;                 % Lattitude (deg)
+lon_p = 1.66;                   % Longitude (deg)
+alt_p = 500;                    % Altitude (km)
+yawRate_BO_p = 0.0;             % Yaw rate B/O (deg/s)
+pitchRate_BO_p = 0.0;           % Pitch rate B/O (deg/s)
+rollRate_BO_p = 0.0;            % Roll rate B/O (deg/s)
 %---
 
-% Goal: q_orbital_to_body = [1,0,0,0] (identity)
-% This means: Body frame = Orbital frame
-% In orbital frame: +X=along-track, +Y=cross-track, +Z=nadir (toward Earth)
+% Initialize orbit (converts B/O rates to B/I rates automatically)
+[r_p, v_p, q_bod_to_eci_init, w_B_I] = InitialiseOrbitAligned(lat_p, lon_p, alt_p, ...
+                                         rollRate_BO_p, pitchRate_BO_p, yawRate_BO_p);
+%---
 
-% Calculate orbital position and velocity
-[r_int, v_int] = InitialiseOrbit(lat_p, lon_p, alt_p);
+% Set camera pointing (relative to orbital frame)
+yaw_p = 0;                     % Camera Yaw Offset B/O (deg)
+pit_p = 0;                      % Camera Pitch Offset B/O(deg)
+rol_p = 0;                      % Camera roll Offset B/O (deg)
+q_bod_to_orb = CalculateCameraPointing(yaw_p, pit_p, rol_p);
+%---
 
-% Define orbital (LVLH) frame vectors in ECI coordinates
-z_orbital_eci = -r_int / norm(r_int);                          % Nadir (toward Earth)
-r_unit = r_int / norm(r_int);
-v_perp = v_int - dot(v_int, r_unit) * r_unit;
-x_orbital_eci = v_perp / norm(v_perp);                         % Along-track (velocity direction)
-y_orbital_eci = cross(z_orbital_eci, x_orbital_eci);           % Cross-track
+% Update ECI quaternion for initial state
+q_bod_to_eci_current = UpdateBodyToECI(q_bod_to_orb, r_p, v_p);
+%---
 
-% Create 3x3 rotation matrix: Orbital frame to ECI frame
-% Each COLUMN represents an orbital frame axis expressed in ECI coordinates
-R_orbital_to_eci = [x_orbital_eci.', y_orbital_eci.', z_orbital_eci.'];
-
-% Since we want body frame = orbital frame:
-R_body_to_eci = R_orbital_to_eci;
-
-% Convert to quaternion (body-to-ECI)
-q_body_to_eci = rotm2quat(R_body_to_eci);
-
-% Initial states
-r_p = r_int;                            % Position (km)
-v_p = v_int;                            % Velocity (km/s)  
-q_p = q_body_to_eci;                    % Quaternions (body-to-ECI)
-w_p = deg2rad([rollRate_p pitchRate_p yawRate_p]); % [wx, wy, wz]           % Angular velocity (rad/s)
-
-% Initialise Plant
-x_true(:,1) = [r_p v_p q_p w_p].';      % True state
+% Set initial true state (with B/I angular velocity)
+x_true(:,1) = [r_p; v_p; q_bod_to_eci_current(:); w_B_I];
+%---
 
 %==========================================================================
 %% Initialise Camera ======================================================
@@ -92,8 +75,8 @@ ax = RenderEarth();
 %---
 
 % Initialise Camera Varaibles
-catalogue_geo   = zeros(2,n_f,n_s);     % Catalogue
-catalogue_eci   = zeros(3,n_f,n_s);     % Catalogue
+catalogue_geo   = zeros(2,n_f,n_s);     % Catalogue in lla
+catalogue_eci   = zeros(3,n_f,n_s);     % Catalogue in ECI
 %---
 
 % Camera Variables
@@ -105,78 +88,72 @@ pixelSize_cam   = 17.4e-6;              % Pixel size (m)
 
 %==========================================================================
 %% Initialise EKF =========================================================
-
 % EKF Variables
-x_EKF   = zeros(n_x,n_s);               % Initialise filter states
-P_EKF   = zeros(n_x,n_x,n_s);           % Initialise filter covariance matrix
+x_EKF = zeros(n_x,n_s);             % Initialise filter states
+P_EKF = zeros(n_x,n_x,n_s);         % Initialise filter covariance matrix
 %---
 
 % EKF Constants
-Mu_f = 398600;                          % Gravitational parameter (km3/s2)
-Re_f = 6378;                            % Radius of Earth (km)
-J2_f = 1.08263e-3;                      % J2 parameter
-I_f  = [1 1 1].';                       % Moment of inertia (kg*m2)
-we_f = 7.2921159e-5;                    % Rotational speed of earth (rad/s)
-Q_f  = TuneQ(dt_p);                     % Process noise covaraince matrix
+Mu_f = 398600;                      % Gravitational parameter (km3/s2)
+Re_f = 6378;                        % Radius of Earth (km)
+J2_f = 1.08263e-3;                  % J2 parameter
+I_f = [1 1 1].';                    % Moment of inertia (kg*m2)
+we_f = 7.2921159e-5;                % Rotational speed of earth (rad/s)
+Q_f = TuneQ(dt_p);                  % Process noise covariance matrix
 %---
 
-% Initial States
-lat_f       = 48.858715;                % Lattitude (deg) 
-lon_f       = 1.00;                     % Longitude (deg)
-alt_f       = 500;                      % Altitude (km)
-yaw_f       = 0;                        % Yaw (deg)
-pitch_f     = 0;                        % Pitch (deg)
-roll_f      = 0;                        % Roll (deg)
-yawRate_f   = 0;                        % Yaw rate (deg/s)
-pitchRate_f = 0;                        % Pitch rate (deg/s)
-rollRate_f  = 0;                        % Roll rate (deg/s)
+% Initial States 
+lat_f = 48.858715;                  % Latitude (deg)
+lon_f = 1.00;                       % Longitude (deg) - offset from truth
+alt_f = 500;                        % Altitude (km)
+yawRate_BO_f = 0.05;                % Yaw rate B/O (deg/s) - different from truth
+pitchRate_BO_f = 0.0;               % Pitch rate B/O (deg/s)
+rollRate_BO_f = 0.0;                % Roll rate B/O (deg/s)
 %---
 
-[r_int_f, v_int_f] = InitialiseOrbit(lat_f, lon_f, alt_f);
+% Initialize EKF orbit
+[r_f, v_f, q_bod_to_eci_init_f, w_B_I_f] = InitialiseOrbitAligned(lat_f, lon_f, alt_f, ...
+                                            rollRate_BO_f, pitchRate_BO_f, yawRate_BO_f);
+%---
 
-% Define orbital frame for filter
-z_orbital_eci_f = -r_int_f / norm(r_int_f);
-r_unit_f = r_int_f / norm(r_int_f);
-v_perp_f = v_int_f - dot(v_int_f, r_unit_f) * r_unit_f;
-x_orbital_eci_f = v_perp_f / norm(v_perp_f);
-y_orbital_eci_f = cross(z_orbital_eci_f, x_orbital_eci_f);
+% Set initial EKF camera pointing (could be different from truth)
+yaw_f = 30;                         % Camere yaw offset deg
+pit_f = 0;                          % Camera pitch offset deg 
+rol_f = 0;                          % Camera roll offset deg
+q_bod_to_orb_f = CalculateCameraPointing(yaw_f, pit_f, rol_f);
+%---
 
-R_orbital_to_eci_f = [x_orbital_eci_f.', y_orbital_eci_f.', z_orbital_eci_f.'];
-R_body_to_eci_f = R_orbital_to_eci_f;
-q_body_to_eci_f = rotm2quat(R_body_to_eci_f);
+% Update ECI quaternion for initial EKF state
+q_bod_to_eci_f = UpdateBodyToECI(q_bod_to_orb_f, r_f, v_f);
+%---
 
-r_f = r_int_f;                          % Position (km)
-v_f = v_int_f;                          % Velocity (km/s)
-q_f = q_body_to_eci_f;                  % Quaternions (body-to-ECI)
-w_f = deg2rad([rollRate_f ...
-    yawRate_f pitchRate_f]);            % Angular velocity (rad/s)
-
-% Initialise Filter  
-x_EKF(:,1) = [r_f v_f q_f w_f].';       % Estimated state
-P_EKF(:,:,1) = TuneP();                 % Covariance matrix
+% Initialize Filter
+x_EKF(:,1) = [r_f; v_f; q_bod_to_eci_f(:); w_B_I_f];    % Estimated state
+P_EKF(:,:,1) = TuneP();                                 % Covariance matrix
 %---
 
 %==========================================================================
 %% Initialise Earth Tracker ===============================================
 
 % Initialsie Earth Tracker Varaibles
-n_ET     = 3;                            % Number of measurements
-dt_ET    = 1;                            % Earth tracker sample rate (s)
+n_ET     = 3;                               % Number of measurements
+dt_ET    = 1;                               % Earth tracker sample rate (s)
 noise_ET = 0.1;
-R_ET     = noise_ET*eye(3);              % Measurement Noise Covariance Matrix
+R_ET     = noise_ET*eye(3);                 % Measurement Noise Covariance Matrix
 
-z_ET     = zeros(n_ET,n_f,n_s);          % Earth tracker measurement
-y_ET     = zeros(n_ET,n_f,n_s);          % Estimated Earth tracker measurement
-K_ET     = zeros(n_x,n_ET,n_f,n_s);      % Earth tracker Kalman Gain
-
-featurePixelLocations = zeros(2,n_f,n_s); % Feature Pixel Locations (Pixels)
+z_ET     = zeros(n_ET,n_f,n_s);              % Earth tracker measurement
+y_ET     = zeros(n_ET,n_f,n_s);             % Estimated Earth tracker measurement
+K_ET     = zeros(n_x,n_ET,n_f,n_s);         % Earth tracker Kalman Gain
+    
+f_m = zeros(2,n_f,n_s);                     % Feature Pixel Locations (Pixels)
 %---
 
 % Earth Tracker Constants
-imgWidth_ET     = 720;                  % Along track image width (pixels)
-imgHeight_ET    = 720;                  % Cross-track image height (pixels)
-focalLength_ET  = 0.58;                 % Focal length (m)
-pixelSize_ET    = 17.4e-6;              % Pixel size (m)
+GSD_ET          = 15;                       % Ground sampling distance (m/pixel) 
+imgWidth_ET     = 720;                      % Along track image width (pixels)
+imgHeight_ET    = 720;                      % Cross-track image height (pixels)
+focalLength_ET  = 0.58;                     % Focal length (m)
+pixelSize_ET    = 17.4e-6;                  % Pixel size (m)
 %---
 
 %==========================================================================
@@ -252,43 +229,38 @@ startTime = tic;
 %---
 
 %==========================================================================
-%% Run Simulation
+%% Run Simulation =========================================================
 for r = 1:n_s-1
-    % Varaibles
+    % Variables
     t = r*dt_p;
     %---
-
-    % Plant
+    
+    % Plant (no changes needed - already uses proper B/I dynamics)
     x_true(:,r+1) = Plant(x_true(:,r), dt_p, I_p, Mu_p, Re_p, J2_p);
     %---
-
-    % Image generator
-    % satelliteImage = GenerateSatelliteImage(ax,x_true(1:3,r),x_true(4:6,r),x_true(7:10,r),imgWidth_cam,imgHeight_cam,focalLength_cam,pixelSize_cam);
-    % SaveSatelliteImages(satelliteImage,r);
-    % catalogue_geo(:,:,r) = FeatureGeoDetection(satelliteImage,x_true(1:3,r),x_true(7:10),focalLength_cam,pixelSize_cam,n_f);
-    % catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r),t);
+    
+    % Image generator (uses current attitude from state vector)
+    satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam, GSD_ET);
+    SaveSatelliteImages(satelliteImage,r);
+    %---
+    
+    % Feature geo-detection (fixed missing index)
+    % catalogue_geo(:,:,r) = FeatureGeoDetection(satelliteImage, x_true(1:3,r), x_true(7:10,r), focalLength_cam, pixelSize_cam, n_f);
+    % catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r), t);
+    %---
+    
+    % Earth Tracker Measurement
+    % [f_m(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage, n_f);
+    % SaveFeatureImages(grayImage, feature_pixels, r);
+    % z_ET(:,:,r) = EarthTracker(f_m(:,:,r).', x_true(7:10,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET);
     %---
 
-    % % Earth Tracker Measruement
-    % [featurePixelLocations(:,:,r), grayImage, feature_pixels] = Feature_Pixel_Detection(satelliteImage,n_f);
-    % SaveFeatureImages(grayImage,feature_pixels,r);
-    % z_ET(:,:,r) = EarthTracker(featurePixelLocations(:,:,r).',x_true(7:10),focalLength_ET,pixelSize_ET,imgHeight_ET,imgWidth_ET);
-    % %---
-
-    % % Sensors
-    % z_ST(:,r)               = StarTracker(x_true(7:10,r),noise_ST);
-    % z_MAG(:,r)              = Magnetometer(x_true(7:10,r),noise_MAG);
-    % z_CSS(:,r)              = CoarseSunSensor(x_true(7:10,r),noise_CSS);
-    % [z_GYR(:,r), drift_GYR] = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
-    % [z_GPS(:,r), drift_GPS] = GPS(x_true(1:3,r),noise_GPS,drift_GPS,driftRate_GPS);
-    % % ---
-
-    % EKF:
+    % % EKF:
     % [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...
     %     catalogue_eci(:,:,r),x_EKF(:,r),P_EKF(:,:,r),I_f,Q_f,dt_p,Mu_f, ...
     %     z_ET(:,:,r), z_CSS(:,r), z_MAG(:,r), z_ST(:,r), z_GPS(:,r), z_GYR(:,r), ...
     %     R_ET, R_CSS, R_MAG, R_ST, R_GPS, R_GYR);
-    % ---
+    % % ---
 
     % Progress bar
     elapsedTime = toc(startTime);
@@ -303,6 +275,6 @@ end
 %--
 
 %==========================================================================
-%% Clean Processes
+%% Clean Processes ========================================================
 delete('temp_image.png')
 %==========================================================================

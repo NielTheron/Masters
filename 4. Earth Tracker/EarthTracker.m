@@ -1,112 +1,69 @@
-function ET_measurement = EarthTracker(feature, sat_pos_eci, sat_quat, focal_length_m, pixel_size_m, pixel_height, pixel_width)
+function f_metric = EarthTracker(pixel_coords, I_x, Iy, fl, ps, GSD)
 %==========================================================================
-% EarthTracker with Earth Surface Intersection
-% Computes actual vectors from satellite to features on Earth's surface
-% Niel Theron - Enhanced version
+% Earth Tracker: Feature Vector Processing Algorithm
+% D.P. Theron - June 17, 2025
 %==========================================================================
-% Inputs:
-%   feature        - Feature pixel locations [Nx2] or [2xN]
-%   sat_pos_eci    - Satellite position in ECI [3x1] (km)
-%   sat_quat       - Satellite attitude quaternion [4x1]
-%   focal_length_m - Camera focal length (m)
-%   pixel_size_m   - Pixel size (m)
-%   pixel_height   - Image height in pixels
-%   pixel_width    - Image width in pixels
+% PURPOSE: Converts detected feature pixel coordinates to metric direction
+% vectors suitable for satellite pose estimation
 %
-% Output:
-%   ET_measurement - Feature vectors in body frame [3xN] (km)
+% INPUTS:
+% pixel_coords  - [N x 2] matrix of pixel coordinates [fMx, fMy] 
+% camera_params - struct with fields:
+%                 .width  (Ix) - image width in pixels
+%                 .height (Iy) - image height in pixels  
+%                 .focal_length (fl) - focal length in meters
+%                 .pixel_size (ps) - pixel size in meters
+% GSD           - Ground Sample Distance in meters/pixel
+%
+% OUTPUT:
+% f_metric      - [N x 3] matrix of feature vectors in meters
+%                 Each row represents one feature vector [x, y, z]
+%
+% ALGORITHM STEPS:
+% Step 1: Extract pixel coordinates (already provided as input)
+% Step 2: Translate to optical center  
+% Step 3: Construct 3D ray vector
+% Step 4: Transform ray direction
+% Step 5: Convert to metric units
 %==========================================================================
 
-% Earth parameters
-R_earth = 6371; % Earth radius in km
-
-% Determine number of features
-if size(feature, 1) == 2
-    N = size(feature, 2);
-    feature = feature'; % Convert to Nx2
-else
-    N = size(feature, 1);
+% Input validation
+if size(pixel_coords, 2) ~= 2
+    error('pixel_coords must be N x 2 matrix [fMx, fMy]');
 end
 
-ET_measurement = zeros(3, N);
+N_features = size(pixel_coords, 1);
 
-% Camera parameters
-cx = pixel_width / 2;
-cy = pixel_height / 2;
-fx = focal_length_m / pixel_size_m;
+% Step 1: Feature Pixel Coordinate Extraction
+% Input: fM = [fMx, fMy] (already provided)
+fMx = pixel_coords(:, 1);
+fMy = pixel_coords(:, 2);
 
-% Quaternion to rotation matrix (body to ECI)
-q = sat_quat / norm(sat_quat);
-qs = q(1); qx = q(2); qy = q(3); qz = q(4);
+% Step 2: Coordinate Translation to Optical Center
+% Transform to camera boresight coordinates
+fM_S = zeros(N_features, 2);
+fM_S(:, 1) = fMx - Ix/2;  % fMx - Ix/2
+fM_S(:, 2) = fMy - Iy/2;  % fMy - Iy/2
 
-R_body_to_eci = [1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
-                 2*(qx*qy + qs*qz),  1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
-                 2*(qx*qz - qs*qy),  2*(qy*qz + qs*qx),  1 - 2*(qx^2 + qy^2)];
+% Step 3: Three-Dimensional Ray Vector Construction
+% Calculate focal length in pixel units
+f_pixels = fl / ps;  % Convert focal length to pixels
 
-% Process each feature
-for i = 1:N
-    u = feature(i, 1);
-    v = feature(i, 2);
-    
-    % Convert pixel to camera ray (normalized)
-    ray_cam = [(u - cx) / fx; -(v - cy) / fx; 1];
-    ray_cam = ray_cam / norm(ray_cam);
-    
-    % Transform ray to ECI frame
-    ray_eci = R_body_to_eci * ray_cam;
-    
-    % Find intersection with Earth surface
-    % Solve: ||sat_pos + t*ray|| = R_earth
-    % This gives quadratic: t^2 + 2*t*(sat_pos·ray) + (||sat_pos||^2 - R_earth^2) = 0
-    
-    a = dot(ray_eci, ray_eci); % Should be 1 if normalized
-    b = 2 * dot(sat_pos_eci, ray_eci);
-    c = dot(sat_pos_eci, sat_pos_eci) - R_earth^2;
-    
-    discriminant = b^2 - 4*a*c;
-    
-    if discriminant < 0
-        % Ray doesn't intersect Earth - feature is beyond horizon
-        fprintf('Warning: Feature %d ray does not intersect Earth\n', i);
-        ET_measurement(:, i) = [NaN; NaN; NaN];
-        continue;
-    end
-    
-    % Take the closer intersection (smaller t)
-    t1 = (-b - sqrt(discriminant)) / (2*a);
-    t2 = (-b + sqrt(discriminant)) / (2*a);
-    
-    % Use the intersection in front of the satellite
-    if t1 > 0
-        t = t1;
-    elseif t2 > 0
-        t = t2;
-    else
-        % Both intersections behind satellite
-        fprintf('Warning: Feature %d is behind satellite\n', i);
-        ET_measurement(:, i) = [NaN; NaN; NaN];
-        continue;
-    end
-    
-    % Calculate intersection point in ECI
-    intersection_eci = sat_pos_eci + t * ray_eci;
-    
-    % Vector from satellite to feature in ECI
-    vector_eci = intersection_eci - sat_pos_eci;
-    
-    % Transform back to body frame
-    ET_measurement(:, i) = R_body_to_eci' * vector_eci;
-end
+% Construct 3D ray vectors
+fM_F = zeros(N_features, 3);
+fM_F(:, 1) = fM_S(:, 1);     % fM/Sx
+fM_F(:, 2) = fM_S(:, 2);     % fM/Sy  
+fM_F(:, 3) = f_pixels;       % fl/ps (same for all features)
 
-% Display statistics
-valid_features = ~isnan(ET_measurement(1,:));
-if any(valid_features)
-    distances = sqrt(sum(ET_measurement(:,valid_features).^2, 1));
-    fprintf('\nEarthTracker Statistics:\n');
-    fprintf('  Valid features: %d/%d\n', sum(valid_features), N);
-    fprintf('  Satellite altitude: %.2f km\n', norm(sat_pos_eci) - R_earth);
-    fprintf('  Range to features: %.2f - %.2f km\n', min(distances), max(distances));
-    fprintf('  Mean range: %.2f km\n', mean(distances));
-end
+% Step 4: Ray Direction Transformation
+% Invert direction to point from focal point to ground
+fG_F = zeros(N_features, 3);
+fG_F(:, 1) = -fM_F(:, 1);    % -fM/Fx
+fG_F(:, 2) = -fM_F(:, 2);    % -fM/Fy
+fG_F(:, 3) = -fM_F(:, 3);    % -fM/Fz
+
+% Step 5: Metric Scale Conversion
+% Apply GSD scaling to convert from pixels to meters
+f_metric = GSD * fG_F;
 
 end

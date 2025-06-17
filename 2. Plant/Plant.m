@@ -46,11 +46,6 @@ az_J2 = J * x(3) * (5*z2/r2 - 3);
 
 % Normalise Quaternion
 x(7:10) = quatnormalize(x(7:10).');
-%---
-
-if dot(xp(7:10), x(7:10)) < 0
-    xp(7:10) = -xp(7:10);
-end
 
 % Caculate the next State
 xp(1,1)  = x(1) + x(4)*dt;                                         % rx
@@ -70,8 +65,6 @@ xp(13,1) = x(13)+ ((I(1)-I(2))*x(11)*x(12))/I(3)*dt;               % wz
 
 % Normalise quaternion
 xp(7:10) = quatnormalize(xp(7:10).');
-if dot(xp(7:10), x(7:10)) < 0
-    xp(7:10) = -xp(7:10);  % Prevent sign flips
-end
 %---
+
 end

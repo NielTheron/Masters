@@ -7,14 +7,6 @@
 
 %% Load path ==============================================================
 
-% Load plots into path
-addpath("8. Plots\PlotErrors")
-addpath("8. Plots\PlotImages")
-addpath("8. Plots\PlotKalmanFilter")
-addpath("8. Plots\PlotPlant")
-addpath("8. Plots\PlotSensors")
-addpath("8. Plots\Videos")
-%---
 
 %==========================================================================
 %% === Plots ==============================================================

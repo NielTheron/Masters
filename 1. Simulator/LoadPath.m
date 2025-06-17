@@ -21,5 +21,12 @@ addpath("7. EKF\Prediction\")
 addpath("7. EKF\Tune\")
 addpath("7. EKF\Update\")
 addpath("8. Plots\")
+addpath("8. Plots\PlotErrors")
+addpath("8. Plots\PlotImages")
+addpath("8. Plots\PlotKalmanFilter")
+addpath("8. Plots\PlotPlant")
+addpath("8. Plots\PlotSensors")
+addpath("8. Plots\Videos")
+
 end
 
