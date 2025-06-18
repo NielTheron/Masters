@@ -64,11 +64,12 @@ qz = q(4);  % Z vector component
 % Input quaternion q_B/I directly represents inertial-to-body rotation
 % This matrix is the DIRECT conversion from the quaternion (no transpose needed)
 % R_I→B = quat2rotm(q_B/I), which transforms vectors from inertial to body frame
-R_eci_to_body = [
+R_body_to_eci = [
     1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
     2*(qx*qy + qs*qz),   1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
     2*(qx*qz - qs*qy),   2*(qy*qz + qs*qx),   1 - 2*(qx^2 + qy^2)
 ];
+R_eci_to_body = R_body_to_eci.';
 
 %==========================================================================
 % Step 5: Transform Feature Vector to Body Frame
@@ -77,29 +78,5 @@ R_eci_to_body = [
 % Result: feature position relative to satellite expressed in body coordinates
 h = R_eci_to_body * f_eci_relative;
 
-%==========================================================================
-% Output Verification (Optional Debug)
-%==========================================================================
-% Uncomment for debugging purposes:
-% fprintf('Satellite position ECI: [%.3f, %.3f, %.3f] km\n', r_sat_eci);
-% fprintf('Feature position ECI: [%.3f, %.3f, %.3f] km\n', c_eci);
-% fprintf('Relative vector ECI: [%.3f, %.3f, %.3f] km\n', f_eci_relative);
-% fprintf('Quaternion [qs,qx,qy,qz]: [%.4f, %.4f, %.4f, %.4f]\n', qs, qx, qy, qz);
-% fprintf('Predicted measurement (body): [%.3f, %.3f, %.3f] km\n', h);
-
 end
 
-%==========================================================================
-% Notes:
-% - Quaternion convention: [qs, qx, qy, qz] with qs as scalar part
-% - Input quaternion q_B/I represents inertial-to-body rotation
-% - Rotation matrix R_I→B performs inertial-to-body transformation (direct from quaternion)
-% - Output units match input units (km)
-% - Function assumes feature is within sensor field of view
-% - Numerical stability maintained through quaternion normalization
-%
-% Mathematical Relationship:
-% q_B/I represents inertial→body rotation, so:
-% R_I→B = quat2rotm(q_B/I)     [direct DCM from quaternion]
-% Your matrix implements R_I→B correctly as the direct quaternion conversion
-%==========================================================================

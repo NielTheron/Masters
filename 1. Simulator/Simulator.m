@@ -17,9 +17,9 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-simulationTime  = 0.2;                   % Simulation time (s)
+simulationTime  = 15;                   % Simulation time (s)
 dt_p            = 0.1;                  % Sample rate (s)
-n_s = simulationTime/dt_p;              % Number of samples
+n_s = round(simulationTime/dt_p);              % Number of samples
 n_f             = 20;                   % Number of features
 %---
 
@@ -117,7 +117,7 @@ rollRate_BO_f = 0.0;                % Roll rate B/O (deg/s)
 %---
 
 % Set initial EKF camera pointing (could be different from truth)
-yaw_f = 30;                         % Camere yaw offset deg
+yaw_f = 0;                         % Camere yaw offset deg
 pit_f = 0;                          % Camera pitch offset deg 
 rol_f = 0;                          % Camera roll offset deg
 q_bod_to_orb_f = CalculateCameraPointing(yaw_f, pit_f, rol_f);
@@ -228,6 +228,9 @@ d = uiprogressdlg(fig, 'Title','Running Simulation', ...
 startTime = tic;
 %---
 
+    fprintf('%d\n',norm(q_bod_to_eci_current))
+    fprintf('%d',norm(q_bod_to_eci_f))
+
 %==========================================================================
 %% Run Simulation =========================================================
 for r = 1:n_s-1
@@ -257,10 +260,11 @@ for r = 1:n_s-1
 
     % EKF:
     [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...
-        catalogue_eci(:,:,r),x_EKF(:,r),P_EKF(:,:,r),I_f,Q_f,dt_p,Mu_f, ...
+        catalogue_eci(:,:,r),x_true(:,r),P_EKF(:,:,r),I_f,Q_f,dt_p,Mu_f, ...
         z_ET(:,:,r), z_CSS(:,r), z_MAG(:,r), z_ST(:,r), z_GPS(:,r), z_GYR(:,r), ...
         R_ET, R_CSS, R_MAG, R_ST, R_GPS, R_GYR);
     % ---
+
 
     % Progress bar
     elapsedTime = toc(startTime);
@@ -272,7 +276,6 @@ for r = 1:n_s-1
         elapsedTime, round(progress*100), estRemaining,r+1,t);
     %---
 end
-%--
 
 %==========================================================================
 %% Clean Processes ========================================================

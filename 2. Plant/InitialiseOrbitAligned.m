@@ -1,4 +1,4 @@
-function [r_p, v_p, q_bod_to_eci, w_B_I] = InitialiseOrbitAligned(lat_p, lon_p, alt_p, rollRate_BO_p, pitchRate_BO_p, yawRate_BO_p)
+function [r_p, v_p, q_eci_to_bod, w_B_I] = InitialiseOrbitAligned(lat_p, lon_p, alt_p, rollRate_BO_p, pitchRate_BO_p, yawRate_BO_p)
 %==========================================================================
 % InitialiseOrbitAligned
 %==========================================================================
@@ -34,8 +34,8 @@ y_orbital_eci = cross(z_orbital_eci, x_orbital_eci);% Cross-track
 %---
 
 % Body frame = Orbital frame (perfect alignment)
-R_bod_to_eci = [x_orbital_eci.'; y_orbital_eci.'; z_orbital_eci.'];
-q_bod_to_eci = rotm2quat(R_bod_to_eci);
+R_eci_to_bod = [x_orbital_eci, y_orbital_eci, z_orbital_eci];
+q_eci_to_bod = rotm2quat(R_eci_to_bod);
 %---
 
 % Calculate orbital angular velocity (O/I expressed in orbital frame)

@@ -32,4 +32,11 @@ q_orb_to_eci = rotm2quat(R_orb_to_eci);
 % Combine: q_bod_to_eci = q_orb_to_eci * q_bod_to_orb
 q_bod_to_eci = quatmultiply(q_orb_to_eci, q_bod_to_orb);
 
+
+a = size(x_orbital_eci); % 3x1
+b = size(R_orb_to_eci);   % 3x3
+c = size(q_orb_to_eci);   % quaternion (1x4)
+d = R_orb_to_eci' * R_orb_to_eci; % should be identity matrix 3x3
+
+
 end

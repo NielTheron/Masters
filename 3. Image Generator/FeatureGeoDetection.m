@@ -1,88 +1,105 @@
+function featureGeoLocations = FeatureGeoDetection(image, r_eci, q, focalLength, pixelSize, n_f)
 %==========================================================================
-% Niel Theron
-% 05-06-2025
+% FeatureGeoDetection - CORRECTED VERSION
 %==========================================================================
-% The purpose of this function is to take in the satellite image and work
-% out the geolocations of the features of the system
+% Purpose: Detect features in satellite image and convert to geographic coordinates
+% Fixes: Proper q_B/I to Earth-relative heading conversion
 %==========================================================================
-% INPUT:
-% image         : The satellite image
-% r             : The position vector of the satellite (km,km,km) (3x1) (ECI)
-% q             : The orientation of the satellite
-% focalLenght   : The focal lenght of the camera (m)
-% pixelSize     : The physical size of the pixel (m)
-% n_f           : Number of features
-%
-% OUTPUT:
-% featureGeoLocations : The geolocations of the feature points (deg,deg) (2xn_f)
-%
-% VARIABLES:
-% grayImage     : A gray representation of the image
-% imageHeight   : The height of the Image (Pixels)
-% imageWidth    : The width of the Image (Pixels)
-% lla           : The lat, long, altitude representation of the position
-% vector
-% satAlt        : The satellite altitude (m)
-% GSD           : Ground sampling distance (m/pixel)
-% points        : Feature detected points
-% featurePixelLocation  : The pixel location of the feature point (pixel,pixel)
-% dx            : Pixel off-set along track
-% dy            : Pixel off-set cross track
-
-%==========================================================================
-
-function featureGeoLocations = FeatureGeoDetection(image, r, q, focalLength, pixelSize, n_f)
-% image: RGB image
-% satpos_ecef_km: satellite position in ECEF [km]
-% focalLength_m: camera focal length in meters
-% pixelSize_m: pixel size in meters
-% heading_deg: sensor/satellite heading (clockwise from north) [degrees]
-% n_f: number of features to detect
 
 % Convert image to grayscale
 grayImage = rgb2gray(image);
 [imageHeight, imageWidth] = size(grayImage);
 
-% Estimate altitude (satellite height above surface) in meters
-lla = ecef2lla(r.' * 1000, "WGS84"); % Convert km to meters
-satAlt = lla(3);  % Altitude in meters
+%==========================================================================
+% SIMPLIFIED: Treat ECI as ECEF for local ground mapping
+%==========================================================================
+% For small time periods and local areas, this approximation is valid
+% The Geo2ECI function will handle the proper Earth rotation
+lla = ecef2lla(r_eci.' * 1000, "WGS84"); % Treat ECI as ECEF temporarily
+satAlt = lla(3); % Altitude in meters
 
 % Calculate GSD [m/pixel]
-GSD = (pixelSize * satAlt) / focalLength;
+GSD = (pixelSize * satAlt) / focalLength; %meter
 
 % Detect SURF features
 points = detectSURFFeatures(grayImage);
-featurePixelLocations = points.selectStrongest(n_f);
+if points.Count == 0
+    featureGeoLocations = [];
+    return;
+end
 
-% Get pixel coordinates
+featurePixelLocations = points.selectStrongest(n_f);
 xy = featurePixelLocations.Location;
 
 % Compute offsets from image center (in pixels)
-dx = xy(:,1) - imageWidth/2;
-dy = imageHeight/2 - xy(:,2); % y is inverted
+dx = xy(:,1) - imageWidth/2;     % x offset (positive = right)
+dy = xy(:,2) - imageHeight/2;    % y offset (positive = down)
 
 % Convert pixel offsets to meters
 dx_m = dx * GSD;  % x is image right
-dy_m = dy * GSD;  % y is image up
+dy_m = dy * GSD;  % y is image down
 
-% Rotate offsets according to heading
-eul_body_to_enu = quat2eul(q.', 'XYZ');
-theta = eul_body_to_enu(1);
-east_offsets  = dx_m * cos(theta) - dy_m * sin(theta); % East direction
-north_offsets = dx_m * sin(theta) + dy_m * cos(theta); % North direction
+%==========================================================================
+% CORRECTED: Calculate proper heading from q_B/I
+%==========================================================================
+% q is the body-to-inertial quaternion q_B/I
+% We need the body orientation relative to the local Earth surface
 
-% Convert satellite ECEF to geodetic lat/lon/alt
+% Step 1: Get satellite's geographic position
+lat_rad = deg2rad(lla(1));
+lon_rad = deg2rad(lla(2));
+
+% Step 2: Create rotation matrix from ECI to local ENU (East-North-Up)
+% This accounts for the satellite's position on Earth
+sin_lat = sin(lat_rad);
+cos_lat = cos(lat_rad);
+sin_lon = sin(lon_rad);
+cos_lon = cos(lon_rad);
+
+% Rotation matrix from ECI to ENU at satellite location
+R_eci_to_enu = [-sin_lon,           cos_lon,          0;
+                -sin_lat*cos_lon,  -sin_lat*sin_lon,  cos_lat;
+                 cos_lat*cos_lon,   cos_lat*sin_lon,  sin_lat];
+
+% Step 3: Convert body-to-inertial quaternion to rotation matrix
+q_normalized = q(:) / norm(q(:));  % Ensure normalized
+qs = q_normalized(1); qx = q_normalized(2); qy = q_normalized(3); qz = q_normalized(4);
+
+R_body_to_eci = [1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
+                 2*(qx*qy + qs*qz),   1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
+                 2*(qx*qz - qs*qy),   2*(qy*qz + qs*qx),   1 - 2*(qx^2 + qy^2)];
+
+% Step 4: Calculate body-to-ENU rotation matrix
+R_body_to_enu = R_eci_to_enu * R_body_to_eci;
+
+% Step 5: Extract heading angle from body-to-ENU rotation
+% The heading is the rotation of the body X-axis relative to East
+body_x_in_enu = R_body_to_enu(:, 1);  % Body X-axis in ENU coordinates
+theta = atan2(body_x_in_enu(2), body_x_in_enu(1));  % Heading angle (rad)
+
+%==========================================================================
+% Apply rotation to convert image coordinates to Earth coordinates
+%==========================================================================
+% Rotate pixel offsets according to satellite heading
+% Note: Adjusted for y-down image coordinate system
+east_offsets = dx_m * cos(theta) + dy_m * sin(theta);
+north_offsets = dx_m * sin(theta) - dy_m * cos(theta);
+
+%==========================================================================
+% Convert to Geographic Coordinates
+%==========================================================================
+% Convert satellite position to LLA for reference
 refLat = lla(1);
 refLon = lla(2);
 refAlt = lla(3); % Altitude in meters
 
-% Assume flat ground at same altitude as nadir point for ENU conversion
-up_offsets = zeros(size(east_offsets)); % flat ground
+% Assume flat ground at same altitude as nadir point
+up_offsets = zeros(size(east_offsets));
 
 % Convert ENU to lat/lon using mapping toolbox
 [lat, lon, ~] = enu2geodetic(east_offsets(:), north_offsets(:), up_offsets(:), ...
                              refLat, refLon, refAlt, wgs84Ellipsoid());
 
-
 featureGeoLocations = [lat, lon].';
+
 end

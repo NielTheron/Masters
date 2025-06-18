@@ -62,4 +62,6 @@ fG_F(3, :) = -fM_F(3, :);    % -fM/Fz
 % Apply GSD scaling to convert from pixels to meters
 f_metric = GSD * fG_F / 1000; %(km)
 
+% Step 6: Georeference image
+
 end

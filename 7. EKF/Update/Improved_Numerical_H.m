@@ -158,13 +158,3 @@ R_eci_to_body = [
 h = R_eci_to_body * f_eci_relative;
 
 end
-
-%==========================================================================
-% Notes:
-% - Jacobian dimensions: [3x13] for 3 measurements, 13 state variables
-% - Step sizes optimized for different state variable types
-% - Quaternion normalization preserves unit constraint during perturbation
-% - Central difference method provides better accuracy than forward difference
-% - Rounding prevents numerical artifacts from propagating through EKF
-% - Function matches HFunction.m logic exactly for consistency
-%==========================================================================
