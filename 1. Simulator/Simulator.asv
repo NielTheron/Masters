@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-simulationTime  = 150;                   % Simulation time (s)
+simulationTime  = ;                   % Simulation time (s)
 dt_p            = 0.1;                  % Sample rate (s)
 n_s = simulationTime/dt_p;              % Number of samples
 n_f             = 20;                   % Number of features
@@ -35,7 +35,7 @@ Mu_p = 398600;                  % Gravitational parameter (km3/s2)
 Re_p = 6378;                    % Radius of Earth (km)
 J2_p = 1.08263e-3;              % J2 parameter
 I_p = [1 1 1].';                % Moment of inertia (kg*m2)
-we_p = 7.2921159e-5;            % Rotational speed of earth (rad/s)
+we_p = 0; %7.2921159e-5;            % Rotational speed of earth (rad/s)
 %---
 
 % Initial States
@@ -138,7 +138,7 @@ P_EKF(:,:,1) = TuneP();                                 % Covariance matrix
 % Initialsie Earth Tracker Varaibles
 n_ET     = 3;                               % Number of measurements
 dt_ET    = 1;                               % Earth tracker sample rate (s)
-noise_ET = 0.1;
+noise_ET = 0;
 R_ET     = noise_ET*eye(3);                 % Measurement Noise Covariance Matrix
 
 z_ET     = zeros(n_ET,n_f,n_s);              % Earth tracker measurement
@@ -251,7 +251,7 @@ for r = 1:n_s-1
     
     % Earth Tracker Measurement
     [f_m(:,:,r), grayImage, feature_pixels] = FeaturePixelDetection(satelliteImage, n_f);
-    SaveFeatureImages(grayImage, feature_pixels, r);
+    % SaveFeatureImages(grayImage, feature_pixels, r);
     z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
     %---
 

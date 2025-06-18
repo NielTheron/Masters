@@ -16,8 +16,8 @@
 % PlotEstimatedState(x_EKF,dt_p)
 % PlotStateError(x_true,x_EKF,dt_p)
 % PlotMeasurement(z_ET,n_f,dt_p)
-% PlotEstimatedMeasurement(y_ET,n_f,dt_p)
-% PlotMeasurementError(z_ET,y_ET,n_f,dt)
+PlotEstimatedMeasurement(y_ET,n_f,dt_p)
+% PlotMeasurementError(z_ET,y_ET,n_f,dt_p)
 % Plot3D(x_true)
 % PlotSensors(x_true,dt,ST_measurement,MAG_measurement,CSS_measurement)
 % PlotGyro(x_true,dt,GYR_measurement)
@@ -27,7 +27,7 @@
 % MakeFeatureVideo(dt)
 % MakeVideo(dt_p)
 % PlotCatalogueGeo(catalogue_geo,10)
-% PlotCatalogueECI(catalogue_eci,120)
+% PlotCatalogueECI(catalogue_eci,1)
 %---
 
 %==========================================================================

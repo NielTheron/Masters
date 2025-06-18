@@ -1,72 +1,105 @@
 function h = HFunction(xm, c_eci)
 %==========================================================================
-% Niel Theron - Complete Transformation Chain
+% HFunction - EKF Measurement Model for EarthTracker
 %==========================================================================
-% Measurement model: ECI → LVLH (Orbital) → Body transformation
-% 
+% Purpose: Predicts the expected EarthTracker measurement given the current
+%          state estimate and known feature position in ECI coordinates
+%
+% Author: D.P. Theron
+% Date: June 18, 2025
+%
 % Inputs:
-% xm    - State vector [r_ECI(3), v_ECI(3), q_body_to_inertial(4), w_body(3)]
-% c_eci - Feature position in ECI frame [3x1] (km)
+%   xm    - State vector [13x1]:
+%           [1:3]   - Satellite position in ECI frame (km)
+%           [4:6]   - Satellite velocity in ECI frame (km/s)  
+%           [7:10]  - Attitude quaternion inertial-to-body q_B/I [qs, qx, qy, qz]
+%           [11:13] - Angular velocity body frame (rad/s)
+%   c_eci - Feature position in ECI frame [3x1] (km)
 %
 % Output:
-% h     - Expected measurement in body/camera frame [3x1] (km)
+%   h     - Predicted measurement: feature vector in body frame [3x1] (km)
 %
-% Transformation Chain: ECI → LVLH → BOD
+% Transformation: ECI → Body Frame
+% Steps: 1) Translate feature relative to satellite
+%        2) Rotate from inertial frame to body frame using quaternion
 %==========================================================================
 
 %==========================================================================
-% Step 1: Transform from ECI to LVLH (Orbital Frame)
+% Step 1: Extract Satellite Position from State Vector
 %==========================================================================
-
-% Extract satellite position and velocity in ECI
-r_sat_eci = [xm(1) xm(2) xm(3)].';
-v_sat_eci = [xm(4) xm(5) xm(6)].';
-
-% Calculate LVLH frame vectors
-z_lvlh = -r_sat_eci / norm(r_sat_eci);           % Nadir pointing (toward Earth center)
-y_lvlh = cross(z_lvlh, v_sat_eci);               % Cross-track (opposite to angular momentum)
-y_lvlh = y_lvlh / norm(y_lvlh);
-x_lvlh = cross(y_lvlh, z_lvlh);                  % Along-track (velocity direction)
-x_lvlh = x_lvlh / norm(x_lvlh);
-
-% Create rotation matrix from ECI to LVLH
-R_eci_to_lvlh = [x_lvlh.';
-                 y_lvlh.';
-                 z_lvlh.'];
-
-% Transform feature from ECI to LVLH frame
-f_eci_relative = c_eci - r_sat_eci;              % Feature relative to satellite in ECI
-f_lvlh = R_eci_to_lvlh * f_eci_relative;         % Feature in LVLH frame
+% Extract the satellite position in ECI coordinates
+r_sat_eci = xm(1:3);  % Position vector [x; y; z] in ECI frame (km)
+% Ensure column vector format for matrix operations
+r_sat_eci = r_sat_eci(:);
 
 %==========================================================================
-% Step 2: Transform from LVLH to Body Frame
+% Step 2: Translate Feature Position to Relative Coordinates
 %==========================================================================
-
-% Extract quaternion (Body to Inertial)
-q = quatnormalize(xm(7:10).');
-qs = q(1); qx = q(2); qy = q(3); qz = q(4);
-
-% Create rotation matrix from Body to Inertial (ECI)
-R_body_to_eci = [1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
-                 2*(qx*qy + qs*qz),  1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
-                 2*(qx*qz - qs*qy),  2*(qy*qz + qs*qx),  1 - 2*(qx^2 + qy^2)];
-
-% Calculate rotation matrix from Body to LVLH
-% R_body_to_lvlh = R_eci_to_lvlh * R_body_to_eci
-R_body_to_lvlh = R_eci_to_lvlh * R_body_to_eci;
-
-% Invert to get LVLH to Body transform
-R_lvlh_to_body = R_body_to_lvlh';
-
-% Transform from LVLH to Body frame
-h = R_lvlh_to_body * f_lvlh;
+% Calculate feature position relative to satellite, both in ECI frame
+% This creates a vector pointing from satellite to feature
+f_eci_relative = c_eci - r_sat_eci;  % Relative position vector (km)
 
 %==========================================================================
-% Output is in Body/Camera Frame
+% Step 3: Extract and Normalize Attitude Quaternion
 %==========================================================================
-% X-axis: Along-track
-% Y-axis: Cross-track  
-% Z-axis: Camera lens direction (nadir pointing)
-% Units: km (same as input ECI coordinates)
+% Extract quaternion representing inertial-to-body rotation
+% Convention: q_B/I = [qs, qx, qy, qz] where qs is scalar part
+q = xm(7:10);
+q = q(:);  % Ensure column vector
+
+% Normalize quaternion to maintain unit constraint
+% This is critical for numerical stability
+q = quatnormalize(q.');  % quatnormalize expects row vector
+q = q(:);  % Convert back to column vector
+
+% Extract individual quaternion components for clarity
+qs = q(1);  % Scalar component
+qx = q(2);  % X vector component  
+qy = q(3);  % Y vector component
+qz = q(4);  % Z vector component
+
+% Step 4: Construct Rotation Matrix from ECI to Body Frame
+%==========================================================================
+% Build rotation matrix using quaternion-to-DCM conversion
+% Input quaternion q_B/I directly represents inertial-to-body rotation
+% This matrix is the DIRECT conversion from the quaternion (no transpose needed)
+% R_I→B = quat2rotm(q_B/I), which transforms vectors from inertial to body frame
+R_eci_to_body = [
+    1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
+    2*(qx*qy + qs*qz),   1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
+    2*(qx*qz - qs*qy),   2*(qy*qz + qs*qx),   1 - 2*(qx^2 + qy^2)
+];
+
+%==========================================================================
+% Step 5: Transform Feature Vector to Body Frame
+%==========================================================================
+% Apply rotation to transform relative feature vector from ECI to body frame
+% Result: feature position relative to satellite expressed in body coordinates
+h = R_eci_to_body * f_eci_relative;
+
+%==========================================================================
+% Output Verification (Optional Debug)
+%==========================================================================
+% Uncomment for debugging purposes:
+% fprintf('Satellite position ECI: [%.3f, %.3f, %.3f] km\n', r_sat_eci);
+% fprintf('Feature position ECI: [%.3f, %.3f, %.3f] km\n', c_eci);
+% fprintf('Relative vector ECI: [%.3f, %.3f, %.3f] km\n', f_eci_relative);
+% fprintf('Quaternion [qs,qx,qy,qz]: [%.4f, %.4f, %.4f, %.4f]\n', qs, qx, qy, qz);
+% fprintf('Predicted measurement (body): [%.3f, %.3f, %.3f] km\n', h);
 
 end
+
+%==========================================================================
+% Notes:
+% - Quaternion convention: [qs, qx, qy, qz] with qs as scalar part
+% - Input quaternion q_B/I represents inertial-to-body rotation
+% - Rotation matrix R_I→B performs inertial-to-body transformation (direct from quaternion)
+% - Output units match input units (km)
+% - Function assumes feature is within sensor field of view
+% - Numerical stability maintained through quaternion normalization
+%
+% Mathematical Relationship:
+% q_B/I represents inertial→body rotation, so:
+% R_I→B = quat2rotm(q_B/I)     [direct DCM from quaternion]
+% Your matrix implements R_I→B correctly as the direct quaternion conversion
+%==========================================================================
