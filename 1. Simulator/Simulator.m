@@ -119,7 +119,7 @@ InitialiseOrbit( ...
 lat_f, lon_f, alt_f, ...
 rol_f, yaw_f, pit_f, ...
 wx_f, wy_f, wz_f, ...
-Mu_f, we_f, t_p);
+Mu_f, we_f, t_f);
 %---
 
 
@@ -237,7 +237,7 @@ for r = 1:n_s-1
     
     % Image generator (uses current attitude from state vector)
     satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
-    SaveSatelliteImages(satelliteImage,r);
+    % SaveSatelliteImages(satelliteImage,r);
     %---
     
     % Feature Detection
