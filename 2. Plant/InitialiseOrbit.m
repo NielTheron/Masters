@@ -1,49 +1,42 @@
-function [r_eci, v_eci] = InitialiseOrbit(lat_deg, lon_deg, alt_km)
+function [r_I, v_I, q_I2B, w_I2B] ...
+ = InitialiseOrbit( ...
+ lat, lon, alt, ...
+ rol, yaw, pit,...
+ wx, wy, wz, ...
+ Mu, we, t)
 %==========================================================================
-% Generates a circular orbit at a given latitude, longitude, and altitude,
-% where the velocity is purely eastward (tangent to local parallel).
+% InitialiseOrbitAligned
 %==========================================================================
-% INPUT:
-% lat_deg    : Latitude [deg]
-% lon_deg    : Longitude [deg]
-% alt_km     : Altitude above sea level [km]
-% OUTPUT:
-% r_eci      : Position vector in ECI [km] - COLUMN VECTOR [3x1]
-% v_eci      : Velocity vector in ECI [km/s] - COLUMN VECTOR [3x1]
+% Purpose: Initialize satellite orbit with body frame aligned to orbital frame
+%
+% Inputs:
+%   lat_p, lon_p, alt_p - Initial orbital position
+%   rollRate_BO_p, pitchRate_BO_p, yawRate_BO_p - Body rates relative to orbital frame (deg/s)
+%
+% Outputs:
+%   r_p            - Position vector (km) [3x1]
+%   v_p            - Velocity vector (km/s) [3x1] 
+%   q_bod_to_eci   - Body-to-ECI quaternion [1x4] [qw, qx, qy, qz]
+%   w_B_I          - Body angular velocity relative to inertial frame (rad/s) [3x1]
+%
+% Note: Input rates are B/O (body relative to orbital), output is B/I (body relative to inertial)
 %==========================================================================
 
-% Constants
-mu_earth = 398600.4418;     % [km^3/s^2]
+% Calculate orbital position and velocity (eastward velocity)
+[r_I, v_I] = LLA2RV([lat; lon; alt],Mu,we,t);
 %---
 
-% Convert lat/lon to radians
-lon = deg2rad(lon_deg);
+% Calculate the quaternion from Inertial to Body
+[~,q_I2O] = ECI2ORB([0;0;0],r_I,v_I);
+[~,q_O2B] = ORB2BOD([0;0;0],[rol, yaw, pit]);
+q_I2B = quatmultiply(q_O2B,q_I2O).';
 %---
 
-% Compute ECEF position (assuming spherical Earth)
-[x,y,z] = geodetic2ecef(wgs84Ellipsoid('km'),lat_deg,lon_deg,alt_km);
-%---
-
-r_ecef=[x;y;z];
-
-% Convert to ECI (ECI = ECEF at time = 0) - ENSURE COLUMN VECTOR
-r_eci = r_ecef(:);  % Force column vector
-%---
-
-% Local East Unit Vector in ECEF (and ECI at time 0)
-east_ecef = [-sin(lon);
-              cos(lon);
-              0];
-east_unit = east_ecef / norm(east_ecef);
-%---
-
-% Orbital speed for circular orbit
-r_mag = norm(r_eci);
-v_mag = sqrt(mu_earth / r_mag);
-%---
-
-% Velocity vector: due east - ENSURE COLUMN VECTOR
-v_eci = v_mag * east_unit;  % Already a column vector, no transpose needed
+% Convert input body rates from B/O to B/I
+w_O2B = deg2rad([wx; wy; wz]); % Body relative to orbital
+w_I2B = w_O2B;
 %---
 
 end
+
+%==========================================================================

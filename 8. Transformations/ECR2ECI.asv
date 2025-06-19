@@ -1,0 +1,24 @@
+%==========================================================================
+% Niel Theorn
+% 19-06-2025
+%==========================================================================
+% This function is used to convert from the ECR reference frame to the ECI
+% reference frame
+%=========================================================================
+% Input:
+%   v_E : ECR Vector [km]
+% Output:
+%   v_I : ECI Vector [km]
+% Variables:
+%   t   : Time [s]
+%   we  : Angular veloctiy if the Earth [rad/s]
+%==========================================================================
+function v_I = ECR2ECI(v_E,t,we)
+
+% Initialise varaible
+    v_I = 
+
+% Make Rotation matrix
+
+end
+

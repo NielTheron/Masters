@@ -1,7 +1,6 @@
-function SaveFeatureImages(grayImage,feature_pixel_locations,r)
+function SaveFeatureImages(grayImage,locations,r)
     rgbImage = repmat(grayImage, [1, 1, 3]);
     radii = 10;  % Radius of filled circle
-    locations = feature_pixel_locations.Location;
     numPoints = size(locations, 1);
     circles = [locations, repmat(radii, numPoints, 1)];  % [x, y, radius]
     feature_image = insertShape(rgbImage, 'FilledCircle', circles,'Color', 'red', 'Opacity', 1);

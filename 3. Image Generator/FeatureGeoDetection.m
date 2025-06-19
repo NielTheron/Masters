@@ -1,4 +1,4 @@
-function featureGeoLocations = FeatureGeoDetection(image, r_eci, q, focalLength, pixelSize, n_f)
+function featureGeoLocations = FeatureGeoDetection(xy,image, r_eci, q_eci_to_body, focalLength, pixelSize)
 %==========================================================================
 % FeatureGeoDetection - CORRECTED VERSION
 %==========================================================================
@@ -6,9 +6,7 @@ function featureGeoLocations = FeatureGeoDetection(image, r_eci, q, focalLength,
 % Fixes: Proper q_B/I to Earth-relative heading conversion
 %==========================================================================
 
-% Convert image to grayscale
-grayImage = rgb2gray(image);
-[imageHeight, imageWidth] = size(grayImage);
+[imageHeight, imageWidth] = size(image);
 
 %==========================================================================
 % SIMPLIFIED: Treat ECI as ECEF for local ground mapping
@@ -21,19 +19,14 @@ satAlt = lla(3); % Altitude in meters
 % Calculate GSD [m/pixel]
 GSD = (pixelSize * satAlt) / focalLength; %meter
 
-% Detect SURF features
-points = detectSURFFeatures(grayImage);
-if points.Count == 0
-    featureGeoLocations = [];
-    return;
-end
 
-featurePixelLocations = points.selectStrongest(n_f);
-xy = featurePixelLocations.Location;
+dx = zeros(1,size(xy,2));
+dy = zeros(1,size(xy,2));
+
 
 % Compute offsets from image center (in pixels)
-dx = xy(:,1) - imageWidth/2;     % x offset (positive = right)
-dy = xy(:,2) - imageHeight/2;    % y offset (positive = down)
+dx(1,:) = xy(1,:) - imageWidth/2;     % x offset (positive = right)
+dy(1,:) = xy(2,:) - imageHeight/2;    % y offset (positive = down)
 
 % Convert pixel offsets to meters
 dx_m = dx * GSD;  % x is image right
@@ -61,16 +54,16 @@ R_eci_to_enu = [-sin_lon,           cos_lon,          0;
                 -sin_lat*cos_lon,  -sin_lat*sin_lon,  cos_lat;
                  cos_lat*cos_lon,   cos_lat*sin_lon,  sin_lat];
 
-% Step 3: Convert body-to-inertial quaternion to rotation matrix
-q_normalized = q(:) / norm(q(:));  % Ensure normalized
+% Convert ECI-to-body quaternion to rotation matrix
+q_normalized = q_eci_to_body(:) / norm(q_eci_to_body(:));
 qs = q_normalized(1); qx = q_normalized(2); qy = q_normalized(3); qz = q_normalized(4);
 
-R_body_to_eci = [1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
+R_eci_to_body = [1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
                  2*(qx*qy + qs*qz),   1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
                  2*(qx*qz - qs*qy),   2*(qy*qz + qs*qx),   1 - 2*(qx^2 + qy^2)];
 
-% Step 4: Calculate body-to-ENU rotation matrix
-R_body_to_enu = R_eci_to_enu * R_body_to_eci;
+% Calculate body-to-ENU rotation matrix
+R_body_to_enu = R_eci_to_enu * R_eci_to_body';  % Transpose to get body-to-ECI
 
 % Step 5: Extract heading angle from body-to-ENU rotation
 % The heading is the rotation of the body X-axis relative to East
@@ -100,6 +93,6 @@ up_offsets = zeros(size(east_offsets));
 [lat, lon, ~] = enu2geodetic(east_offsets(:), north_offsets(:), up_offsets(:), ...
                              refLat, refLon, refAlt, wgs84Ellipsoid());
 
-featureGeoLocations = [lat, lon].';
+featureGeoLocations = [lat+0.002, lon].';
 
 end

@@ -1,4 +1,9 @@
-function [r_p, v_p, q_eci_to_bod, w_B_I] = InitialiseOrbitAligned(lat_p, lon_p, alt_p, rollRate_BO_p, pitchRate_BO_p, yawRate_BO_p)
+function [r_I, v_I, q_I2B, w_I2B] ...
+ = InitialiseOrbit( ...
+ lat_p, lon_p, alt_p, ...
+ rol_p, yaw_p, pit_p,...
+ wx_p, wy_p, wz_p, ...
+ Mu, we, t)
 %==========================================================================
 % InitialiseOrbitAligned
 %==========================================================================
@@ -18,42 +23,30 @@ function [r_p, v_p, q_eci_to_bod, w_B_I] = InitialiseOrbitAligned(lat_p, lon_p, 
 %==========================================================================
 
 % Calculate orbital position and velocity (eastward velocity)
-[r_int, v_int] = InitialiseOrbit(lat_p, lon_p, alt_p);
-
-% Ensure vectors are column vectors
-r_int = r_int(:);
-v_int = v_int(:);
+[r_I, v_I] = LLA2RV([lat_p; lon_p; alt_p],Mu,we,t);
 %---
 
-% Define orbital (LVLH) frame vectors in ECI coordinates
-z_orbital_eci = -r_int / norm(r_int);               % Nadir (toward Earth)
-r_unit = r_int / norm(r_int);
-v_perp = v_int - dot(v_int, r_unit) * r_unit;
-x_orbital_eci = v_perp / norm(v_perp);              % Along-track (velocity direction)
-y_orbital_eci = cross(z_orbital_eci, x_orbital_eci);% Cross-track
-%---
-
-% Body frame = Orbital frame (perfect alignment)
-R_eci_to_bod = [x_orbital_eci, y_orbital_eci, z_orbital_eci];
-q_eci_to_bod = rotm2quat(R_eci_to_bod);
+% Calculate the quaternion from Inertial to Body
+[~,q_I2O] = ECI2ORB([0;0;0],r_I,v_I);
+[~,q_O2B] = ORB2BOD([0;0;0],[rol_p, yaw_p, pit_p]);
+q_I2B = quatmultiply(q_O2B,q_I2O).';
 %---
 
 % Calculate orbital angular velocity (O/I expressed in orbital frame)
 % For circular orbit: ω_O/I = [0; 0; -n] where n is mean motion
-n_orbit = sqrt(398600 / norm(r_int)^3); % Mean motion (rad/s)
-w_O_I_in_O = [0; 0; -n_orbit]; % Orbital frame rotates about -Z axis
+n_orbit = sqrt(Mu / norm(r_I)^3); % Mean motion (rad/s)
+w_I2O_in_O = [0; 0; -n_orbit]; % Orbital frame rotates about -Z axis
+%---
 
 % Convert input body rates from B/O to B/I
 % ω_B/I = ω_B/O + ω_O/I (both expressed in body frame)
-w_B_O = deg2rad([rollRate_BO_p; pitchRate_BO_p; yawRate_BO_p]); % Body relative to orbital
-w_O_I_in_B = w_O_I_in_O; % Since body = orbital frame initially
+w_O2B = deg2rad([wx_p; wy_p; wz_p]); % Body relative to orbital
+w_I2O_in_B = w_I2O_in_O; % Since body = orbital frame initially
+%---
 
 % Total angular velocity: Body relative to inertial
-w_B_I = w_B_O + w_O_I_in_B;
-
-% Set outputs (ensure column vectors)
-r_p = r_int(:);
-v_p = v_int(:);
+w_I2B = w_O2B + w_I2O_in_B;
+%---
 
 end
 

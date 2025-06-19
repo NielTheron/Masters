@@ -16,7 +16,7 @@
 % PlotEstimatedState(x_EKF,dt_p)
 % PlotStateError(x_true,x_EKF,dt_p)
 % PlotMeasurement(z_ET,n_f,dt_p)
-PlotEstimatedMeasurement(y_ET,n_f,dt_p)
+% PlotEstimatedMeasurement(y_ET,n_f,dt_p)
 % PlotMeasurementError(z_ET,y_ET,n_f,dt_p)
 % Plot3D(x_true)
 % PlotSensors(x_true,dt,ST_measurement,MAG_measurement,CSS_measurement)

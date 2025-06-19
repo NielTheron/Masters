@@ -7,6 +7,7 @@
 %==========================================================================
 
 function CleanFolders()
+
     % Clear satellite Images
     folderPath = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\SatelliteImages'; % **IMPORTANT: Replace with your actual folder path**
     if exist(folderPath, 'dir')
@@ -24,5 +25,7 @@ function CleanFolders()
     mkdir(folderPath);
     addpath(folderPath)
     %---
+
 end
 
+%==========================================================================

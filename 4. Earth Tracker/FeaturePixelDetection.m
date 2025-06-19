@@ -1,4 +1,4 @@
-function [feature_pixel_locations, grayImage, feature_pixels] = FeaturePixelDetection(image,n_f)
+function [feature_pixel_locations, grayImage] = FeaturePixelDetection(image,n_f)
 
 grayImage = rgb2gray(image);
 points = detectSURFFeatures(grayImage);
