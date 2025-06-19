@@ -1,4 +1,10 @@
-function featureGeoLocations = FeatureGeoDetection(xy,image, r_eci, q_eci_to_body, focalLength, pixelSize)
+%==========================================================================
+% Niel Theron
+% 19-06-25
+%=========================================================================
+
+
+function featureGeoLocations = FeatureGeolocation(features, image, r_I, q_I2B, focalLength, pixelSize)
 %==========================================================================
 % FeatureGeoDetection - CORRECTED VERSION
 %==========================================================================
@@ -13,20 +19,20 @@ function featureGeoLocations = FeatureGeoDetection(xy,image, r_eci, q_eci_to_bod
 %==========================================================================
 % For small time periods and local areas, this approximation is valid
 % The Geo2ECI function will handle the proper Earth rotation
-lla = ecef2lla(r_eci.' * 1000, "WGS84"); % Treat ECI as ECEF temporarily
+
+
+lla = ecef2lla(r_I.' * 1000, "WGS84"); % Treat ECI as ECEF temporarily
 satAlt = lla(3); % Altitude in meters
 
 % Calculate GSD [m/pixel]
 GSD = (pixelSize * satAlt) / focalLength; %meter
 
-
-dx = zeros(1,size(xy,2));
-dy = zeros(1,size(xy,2));
-
+dx = zeros(1,size(features,2));
+dy = zeros(1,size(features,2));
 
 % Compute offsets from image center (in pixels)
-dx(1,:) = xy(1,:) - imageWidth/2;     % x offset (positive = right)
-dy(1,:) = xy(2,:) - imageHeight/2;    % y offset (positive = down)
+dx(1,:) = features(1,:) - imageWidth/2;     % x offset (positive = right)
+dy(1,:) = features(2,:) - imageHeight/2;    % y offset (positive = down)
 
 % Convert pixel offsets to meters
 dx_m = dx * GSD;  % x is image right
@@ -55,7 +61,7 @@ R_eci_to_enu = [-sin_lon,           cos_lon,          0;
                  cos_lat*cos_lon,   cos_lat*sin_lon,  sin_lat];
 
 % Convert ECI-to-body quaternion to rotation matrix
-q_normalized = q_eci_to_body(:) / norm(q_eci_to_body(:));
+q_normalized = q_I2B(:) / norm(q_I2B(:));
 qs = q_normalized(1); qx = q_normalized(2); qy = q_normalized(3); qz = q_normalized(4);
 
 R_eci_to_body = [1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
@@ -93,6 +99,6 @@ up_offsets = zeros(size(east_offsets));
 [lat, lon, ~] = enu2geodetic(east_offsets(:), north_offsets(:), up_offsets(:), ...
                              refLat, refLon, refAlt, wgs84Ellipsoid());
 
-featureGeoLocations = [lat+0.002, lon].';
+featureGeoLocations = [lat, lon].';
 
 end

@@ -231,7 +231,7 @@ for r = 1:n_s-1
     t = r*dt_p;
     %---
     
-    % Plant (no changes needed - already uses proper B/I dynamics)
+    % Plant
     x_true(:,r+1) = Plant(x_true(:,r), dt_p, I_p, Mu_p, Re_p, J2_p);
     %---
     
@@ -243,29 +243,31 @@ for r = 1:n_s-1
     % Feature Detection
     [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
     % SaveFeatureImages(grayImage, feature_pixels, r);
+    % 
+    % f_m(:,:,r) = [  0,      0;
+    %                 180,    180;
+    %                 -180,   180;
+    %                 180,    -180;
+    %                 -180,   -180;
+    %                 360,    360;
+    %                 -360,   360;
+    %                 360,    -360;
+    %                 -360,   -360;
+    %                 540,    540;
+    %                 -540    540;
+    %                 540     -540;
+    %                 -540    -540].';
+    % %---
 
-    f_m(:,:,r) = [  0,      0;
-                    180,    180;
-                    -180,   180;
-                    180,    -180;
-                    -180,   -180;
-                    360,    360;
-                    -360,   360;
-                    360,    -360;
-                    -360,   -360;
-                    540,    540;
-                    -540    540;
-                    540     -540;
-                    -540    -540].';
-    %---
+    DirectGeolocation(f_m(:,:,r),satelliteImage,"ParisStrip.tif")
 
     % Catalogue Creation
-    catalogue_geo(:,:,r) = FeatureGeoDetection(f_m(:,:,r),grayImage, x_true(1:3,r), x_true(7:10,r), focalLength_cam, pixelSize_cam);
-    catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r),we_p, t);
+    % catalogue_geo(:,:,r) = FeatureGeoDetection(f_m(:,:,r),grayImage, x_true(1:3,r), x_true(7:10,r), focalLength_cam, pixelSize_cam);
+    % catalogue_eci(:,:,r) = Geo2ECI(catalogue_geo(:,:,r),we_p, t);
     %---
 
     % Earth Tracker Measurement
-    z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
+    % z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
     %---
 
     % EKF:
