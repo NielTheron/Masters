@@ -61,7 +61,7 @@ R_I2B = [
 %---
 
 %Transform Feature Vector to Body Frame
-h = R_I2B * f_eci_relative;
+h = R_I2B.' * f_eci_relative;
 %---
 
 end

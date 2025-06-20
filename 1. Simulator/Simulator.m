@@ -224,6 +224,9 @@ d = uiprogressdlg(fig, 'Title','Running Simulation', ...
 startTime = tic;
 %---
 
+test = zeros(3,13,n_s);
+
+
 %==========================================================================
 %% Run Simulation =========================================================
 for r = 1:n_s-1
@@ -254,6 +257,7 @@ for r = 1:n_s-1
 
     % Earth Tracker Measurement
     z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
+    test(:,:,r) = HFunction(x_true(:,r),catalogue_eci(:,:,r));
     %---
 
     % EKF:

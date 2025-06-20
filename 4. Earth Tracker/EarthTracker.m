@@ -54,8 +54,8 @@ fM_F(3, :) = -f_pixels;       % fl/ps (same for all features)
 % Step 4: Ray Direction Transformation
 % Invert direction to point from focal point to ground
 fG_F = zeros(3, N_features);
-fG_F(1, :) = -fM_F(1, :);    % -fM/Fx
-fG_F(2, :) = -fM_F(2, :);    % -fM/Fy
+fG_F(1, :) = fM_F(1, :);    % -fM/Fx
+fG_F(2, :) = fM_F(2, :);    % -fM/Fy
 fG_F(3, :) = -fM_F(3, :);    % -fM/Fz
 
 % Step 5: Metric Scale Conversion
