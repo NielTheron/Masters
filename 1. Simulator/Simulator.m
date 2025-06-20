@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-st      = 15;                           % Simulation time (s)
+st      = 1;                           % Simulation time (s)
 dt_p    = 0.1;                          % Sample rate (s)
 n_s     = round(st/dt_p);               % Number of samples
 n_f     = 13;                           % Number of features
@@ -36,7 +36,7 @@ Mu_p = 3.986e5;                         % Gravitational parameter (km3/s2)
 Re_p = 6.378e3;                         % Radius of Earth (km)
 J2_p = 1.082e-3;                        % J2 parameter
 I_p  = [1 1 1].';                       % Moment of inertia (kg*m2)
-we_p = 7.292e-5;                        % Rotational speed of earth (rad/s)
+we_p = 0; %7.292e-5;                        % Rotational speed of earth (rad/s)
 %---
 
 % Initial States
@@ -73,7 +73,7 @@ ax = RenderEarth();
 %---
 
 % Initialise Camera Varaibles
-catalogue_geo   = zeros(2,n_f,n_s);     % Catalogue in lla
+catalogue_geo   = zeros(3,n_f,n_s);     % Catalogue in lla
 catalogue_eci   = zeros(3,n_f,n_s);     % Catalogue in ECI
 %---
 
@@ -96,7 +96,7 @@ Mu_f = 3.986e5;                     % Gravitational parameter (km3/s2)
 Re_f = 6.378e3;                     % Radius of Earth (km)
 J2_f = 1.082e-3;                    % J2 parameter
 I_f = [1 1 1].';                    % Moment of inertia (kg*m2)
-we_f = 7.292e-5;                    % Rotational speed of earth (rad/s)
+we_f = 0;% 7.292e-5;                    % Rotational speed of earth (rad/s)
 Q_f = TuneQ(dt_p);                  % Process noise covariance matrix
 %---
 
@@ -243,28 +243,13 @@ for r = 1:n_s-1
     % Feature Detection
     [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
     % SaveFeatureImages(grayImage, feature_pixels, r);
-    % 
-    % f_m(:,:,r) = [  0,      0;
-    %                 180,    180;
-    %                 -180,   180;
-    %                 180,    -180;
-    %                 -180,   -180;
-    %                 360,    360;
-    %                 -360,   360;
-    %                 360,    -360;
-    %                 -360,   -360;
-    %                 540,    540;
-    %                 -540    540;
-    %                 540     -540;
-    %                 -540    -540].';
-    % %---
-
-    catalogue_geo(:,:,r) = DirectGeolocation(f_m(:,:,r),satelliteImage,"ParisStrip.tif");
-
+    %---
 
     % Catalogue Creation
-    % catalogue_geo(:,:,r) = FeatureGeoDetection(f_m(:,:,r),grayImage, x_true(1:3,r), x_true(7:10,r), focalLength_cam, pixelSize_cam);
-    catalogue_eci(:,:,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,:,r)),t,we_p);
+    catalogue_geo(:,:,r) = DirectGeolocation(f_m(:,:,r),satelliteImage,"ParisStrip.tif");
+    for i = 1:n_f
+        catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
+    end
     %---
 
     % Earth Tracker Measurement

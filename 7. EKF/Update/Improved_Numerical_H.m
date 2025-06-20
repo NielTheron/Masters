@@ -145,7 +145,7 @@ qz = q(4);  % Z vector component
 % Quaternion-to-DCM conversion for ECI to Body transformation
 % Note: Input quaternion q represents body-to-inertial rotation
 % This matrix is the transpose (inverse) of the quaternion's natural DCM
-R_eci_to_body = [
+R_I2B = [
     1 - 2*(qy^2 + qz^2),  2*(qx*qy - qs*qz),  2*(qx*qz + qs*qy);
     2*(qx*qy + qs*qz),   1 - 2*(qx^2 + qz^2),  2*(qy*qz - qs*qx);
     2*(qx*qz - qs*qy),   2*(qy*qz + qs*qx),   1 - 2*(qx^2 + qy^2)
@@ -155,6 +155,6 @@ R_eci_to_body = [
 % Step 5: Transform to Body Frame
 %==========================================================================
 % Apply rotation to get feature vector in body frame coordinates
-h = R_eci_to_body * f_eci_relative;
+h = R_I2B * f_eci_relative;
 
 end

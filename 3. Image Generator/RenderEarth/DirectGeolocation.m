@@ -36,7 +36,7 @@ end
 %========================= STEP 5: Match Each Satellite Feature Patch ========
 patchSize = 51; % Larger patch for better matching
 halfPatch = floor(patchSize / 2);
-featureGeoLocations = NaN(2, numFeatures); % Initialize with NaN for all features
+featureGeoLocations = NaN(3, numFeatures); % Initialize with NaN for all features
 
 % Matching parameters to try (progressively more permissive)
 maxRatios = [0.6, 0.7, 0.8];
@@ -102,7 +102,7 @@ for i = 1:numFeatures
                           (R.LatitudeLimits(2) - R.LatitudeLimits(1)) / (refRows - 1);
                     
                     % Store result
-                    featureGeoLocations(:, i) = [lat; lon];
+                    featureGeoLocations(:, i) = [lat; lon; 0];
                     fprintf('SURF matched (threshold=%.1f, ratio=%.1f)\n', metricThresholds(threshIdx), maxRatios(ratioIdx));
                     matched = true;
                     break;
@@ -136,7 +136,7 @@ for i = 1:numFeatures
                 lat = R.LatitudeLimits(2) - (refY - 1) * ...
                       (R.LatitudeLimits(2) - R.LatitudeLimits(1)) / (refRows - 1);
                 
-                featureGeoLocations(:, i) = [lat; lon];
+                featureGeoLocations(:, i) = [lat; lon; 0];
                 fprintf('Template matched (corr=%.3f)\n', maxCorr);
                 matched = true;
             end
