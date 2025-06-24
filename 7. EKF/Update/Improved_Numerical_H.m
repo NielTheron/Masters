@@ -155,6 +155,6 @@ R_I2B = [
 % Step 5: Transform to Body Frame
 %==========================================================================
 % Apply rotation to get feature vector in body frame coordinates
-h = R_I2B * f_eci_relative;
+h = R_I2B.' * f_eci_relative;
 
 end

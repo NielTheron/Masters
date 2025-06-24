@@ -12,13 +12,13 @@
 %% === Plots ==============================================================
 
 % Plot varaibles
-% PlotState(x_true,dt_p)
-% PlotEstimatedState(x_EKF,dt_p)
-% PlotStateError(x_true,x_EKF,dt_p)
+PlotState(x_true,dt_p)
+PlotEstimatedState(x_EKF,dt_p)
+PlotStateError(x_true,x_EKF,dt_p)
 % PlotMeasurement(z_ET,n_f,dt_p)
 % PlotEstimatedMeasurement(y_ET,n_f,dt_p)
 % PlotMeasurementError(z_ET,y_ET,n_f,dt_p)
-% Plot3D(x_true)
+% Plot3D(x_true,x_EKF)
 % PlotSensors(x_true,dt,ST_measurement,MAG_measurement,CSS_measurement)
 % PlotGyro(x_true,dt,GYR_measurement)
 % PlotGPS(x_true,dt,GPS_measurement)
