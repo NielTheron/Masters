@@ -9,7 +9,7 @@
 % This adds all the functions to the compile path
 warning('off');
 LoadPath;
-% CleanFolders;
+CleanFolders;
 clearvars;
 %---
 
@@ -43,7 +43,7 @@ we_p = 0; %7.292e-5;                    % Rotational speed of earth (rad/s)
 lat_p   = 48.858;                       % Lattitude (deg)
 lon_p   = 1.66;                         % Longitude (deg)
 alt_p   = 500;                          % Altitude (km)
-rol_p   = 0;                            % Camera roll  Offset B/O (deg)
+rol_p   = 0;                          % Camera roll  Offset B/O (deg)
 yaw_p   = 0;                            % Camera Yaw   Offset B/O (deg)
 pit_p   = 0;                            % Camera Pitch Offset B/O (deg)
 wx_p    = 0;                            % Roll  rate B/O (deg/s)
@@ -97,14 +97,14 @@ Re_f = 6.378e3;                     % Radius of Earth (km)
 J2_f = 1.082e-3;                    % J2 parameter
 I_f = [1 1 1].';                    % Moment of inertia (kg*m2)
 we_f = 0;% 7.292e-5;                    % Rotational speed of earth (rad/s)
-Q_f = TuneQ(dt_p);                  % Process noise covariance matrix
+Q_f = TuneQ();                  % Process noise covariance matrix
 %---
 
 % Initial States 
 lat_f   = 48.858;                   % Latitude  (deg)
 lon_f   = 1.66;                     % Longitude (deg)
 alt_f   = 500;                      % Altitude  (km)
-rol_f   = 0;                        % Camera Roll  offset B/O (deg)
+rol_f   = 5;                        % Camera Roll  offset B/O (deg)
 yaw_f   = 0;                        % Camere Yaw   offset B/O (deg)
 pit_f   = 0;                        % Camera Pitch offset B/O (deg)
 wx_f    = 0;                        % Roll  rate B/O (deg/s)
@@ -149,7 +149,7 @@ GSD_ET          = 15;                   % Ground sampling distance (m/pixel)
 imgWidth_ET     = 720;                  % Along track image width  (pixels)
 imgHeight_ET    = 720;                  % Cross-track image height (pixels)
 focalLength_ET  = 0.58;                 % Focal length (m)
-pixelSize_ET    = 17.4e-6;              % Pixel size   (m)
+pixelSize_ET    = 1.74e-5;              % Pixel size   (m)
 %---
 
 %==========================================================================
@@ -239,40 +239,40 @@ for r = 1:n_s-1
     %---
     
     % Image generator (uses current attitude from state vector)
-    satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
-    SaveSatelliteImages(satelliteImage,r);
+    % satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
+    % SaveSatelliteImages(satelliteImage,r);
     %---
     
     % Feature Detection
-    [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
+    % [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
     % SaveFeatureImages(grayImage, feature_pixels, r);
     %---
 
     % Catalogue Creation
-    catalogue_geo(:,:,r) = DirectGeolocation(f_m(:,:,r),satelliteImage,"ParisStrip.tif");
+    % catalogue_geo(:,:,r) = DirectGeolocation(f_m(:,:,r),satelliteImage,"ParisStrip.tif");
     % catalogue_geo(:,:,r) = FeatureGeolocation(f_m(:,:,r),grayImage,x_true(1:3),x_true(7:10),focalLength_cam,pixelSize_cam);
-    for i = 1:n_f
-        catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
-    end
+    % for i = 1:n_f
+    %     catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
+    % end
     %---
 
     % Earth Tracker Measurement
-    z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
-    test(:,:,r) = HFunction(x_true(:,r),catalogue_eci(:,:,r));
+    % z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
+    % test(:,:,r) = HFunction(x_true(:,r),catalogue_eci(:,:,r));
     %---
 
-    % % Sensors
-    % j = mod(t,1);
-    % if j == 0
-    %     z_CSS(:,r) = CoarseSunSensor(x_true(7:10,r),noise_CSS);
-    %     z_GPS(:,r) = GPS(x_true(1:3,r),noise_GPS,drift_GPS,driftRate_GPS);
-    %     z_GYR(:,r) = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
-    % else
-    %     z_CSS(:,r) = [0 0 0 0].';
-    %     z_GPS(:,r) = [0 0 0].';
-    %     z_GYR(:,r) = [0 0 0].';
-    % end
-    % %---
+    % Sensors
+    j = mod(t,1);
+    if j == 0
+        z_CSS(:,r) = CoarseSunSensor(x_true(7:10,r),noise_CSS);
+        z_GPS(:,r) = GPS(x_true(1:3,r),noise_GPS,drift_GPS,driftRate_GPS);
+        z_GYR(:,r) = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
+    else
+        z_CSS(:,r) = [0 0 0 0].';
+        z_GPS(:,r) = [0 0 0].';
+        z_GYR(:,r) = [0 0 0].';
+    end
+    %---
 
     % EKF:
     [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...

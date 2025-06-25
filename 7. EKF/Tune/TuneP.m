@@ -1,8 +1,8 @@
 function P = TuneP()
-sigma_pos = 1e3;  % m
-sigma_vel = 1e3; % m/s
-sigma_q = 1e2;
-sigma_w = 1e2;  % rad/s
+sigma_pos = 500;  % m
+sigma_vel = 10; % m/s
+sigma_q = 0.01;
+sigma_w = 0.01;  % rad/s
 
 P = diag([
     sigma_pos^2 * ones(1,3), ...
