@@ -5,7 +5,7 @@
 % The purpose of this function is to numerically compute the state
 % transition Jacobian matrix F = df/dx.
 %==========================================================================
-function F = FJacob_numerical(x0, I0, dt, Mu)
+function F = FJacob_numerical(x0, I0, dt, Mu, Re, J2)
 
 % Ensure inputs have correct shapes
 x0 = x0(:); % Ensure column vector
@@ -35,8 +35,8 @@ for i = 1:n
     end
 
     % Calculate next state for perturbed states using the consistent function
-    f_forward = FFunctionF(x_plus, I0, dt, Mu);
-    f_backward = FFunctionF(x_minus, I0, dt, Mu);
+    f_forward = FFunctionF(x_plus, I0, dt, Mu, Re, J2);
+    f_backward = FFunctionF(x_minus, I0, dt, Mu, Re, J2);
 
     % Central difference formula
     F(:, i) = (f_forward - f_backward) / (2 * epsilon);

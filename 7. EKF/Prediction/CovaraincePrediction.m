@@ -13,9 +13,9 @@
 % I                     : Moment of inertia
 %==========================================================================
 
-function Pp = CovaraincePrediction(x,P,Q,dt,I,Mu)
+function Pp = CovaraincePrediction(x,P,Q,dt,I,Mu,Re,J2)
 
-F = FJacob_numerical(x,I,dt,Mu);
+F = FJacob_numerical(x,I,dt,Mu,Re,J2);
 
 Pp = F*P*F.' + Q;
 

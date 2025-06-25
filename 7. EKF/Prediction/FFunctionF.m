@@ -10,12 +10,10 @@
 % x = xn    : Current States
 % f         : Output of the F_function
 %==========================================================================
-function f = FFunctionF(x,I,dt,Mu)
+function f = FFunctionF(x,I,dt,Mu,Re,J2)
 
 % Initialise Varaibles
 f = zeros(13,1);
-Re = 6378.137;
-J2 = 1.08263e-3;
 %---
 
 % Calcualte the gravitaional effect

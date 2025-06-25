@@ -10,9 +10,9 @@
 % G                 : Input Matrix
 % u = u_n           : Current Input
 %==========================================================================
-function xp = StatePredictionF(x,I,dt,Mu)
+function xp = StatePredictionF(x,I,dt,Mu,Re,J2)
 
 % Calcualte next state
-f = FFunctionF(x,I,dt,Mu);
+f = FFunctionF(x,I,dt,Mu,Re,J2);
 xp = f;
 %---

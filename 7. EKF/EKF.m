@@ -16,7 +16,7 @@
 %==========================================================================
 function [y_ET, x_EKF, P_EKF, K_ET] ...
  = EKF( ...
- catalogue,x_EKF,P_EKF,I_f,Q_f,dt_f,Mu_f, ...
+ catalogue,x_EKF,P_EKF,I_f,Q_f,dt_f,Mu_f, Re_f, J2_f, ...
  z_ET, z_CSS, z_MAG, z_ST, z_GPS, z_GYR, ...
  R_ET, R_CSS, R_MAG, R_ST, R_GPS, R_GYR)
 
@@ -29,8 +29,8 @@ K_ET = zeros(n_x,n_z,n_f);
 %---
 
 %% Prediction step
-xp_EKF = StatePredictionF(x_EKF,I_f,dt_f,Mu_f);
-Pp_EKF = CovaraincePrediction(xp_EKF,P_EKF,Q_f,dt_f,I_f,Mu_f);
+xp_EKF = StatePredictionF(x_EKF,I_f,dt_f,Mu_f,Re_f,J2_f);
+Pp_EKF = CovaraincePrediction(xp_EKF,P_EKF,Q_f,dt_f,I_f,Mu_f,Re_f,J2_f);
 %---
 
 
@@ -86,15 +86,26 @@ if norm(z_GYR) ~= 0
     Pp_EKF = CovarianceUpdate(K_AngV,Pp_EKF,R_GYR,H);
 end
 %---
-% 
-% 5. GPS (high position accuracy)
+
+
+% In EKF.m, GPS update section:
 if norm(z_GPS) ~= 0
+    fprintf('\n=== EKF GPS UPDATE DEBUG ===\n');
+    fprintf('EKF position before update: [%.3f, %.3f, %.3f]\n', xp_EKF(1:3));
+    fprintf('GPS measurement z_GPS:      [%.3f, %.3f, %.3f]\n', z_GPS);
+    fprintf('Innovation (z_GPS - xp_EKF): [%.3f, %.3f, %.3f]\n', z_GPS - xp_EKF(1:3));
+    fprintf('Innovation magnitude:        %.3f km\n', norm(z_GPS - xp_EKF(1:3)));
+    
     H = [1 0 0 0 0 0 0 0 0 0 0 0 0;
          0 1 0 0 0 0 0 0 0 0 0 0 0;
          0 0 1 0 0 0 0 0 0 0 0 0 0];
     K_Pos = GainUpdate(H,Pp_EKF,R_GPS);
+    fprintf('Kalman gain K_Pos norm:     %.6f\n', norm(K_Pos));
+    fprintf('R_GPS:                      %.6f\n', R_GPS(1,1));
+    
     xp_EKF = StateUpdatePosition(xp_EKF,K_Pos,z_GPS);
-    Pp_EKF = CovarianceUpdate(K_Pos,Pp_EKF,R_GPS,H);
+    fprintf('EKF position after update:  [%.3f, %.3f, %.3f]\n', xp_EKF(1:3));
+    fprintf('Remaining error:            %.3f km\n', norm(z_GPS - xp_EKF(1:3)));
 end
 %---
 
