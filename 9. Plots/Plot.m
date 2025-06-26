@@ -14,8 +14,8 @@
 % Plot System States
 %---------------------
 PlotState(x_true,dt_p)
-PlotEstimatedState(x_EKF,dt_p)
-PlotStateError(x_true,x_EKF,dt_p)
+% PlotEstimatedState(x_EKF,dt_p)
+% PlotStateError(x_true,x_EKF,dt_p)
 %---------------------
 
 % Plot Estimator
@@ -35,11 +35,11 @@ PlotStateError(x_true,x_EKF,dt_p)
 
 % Plot Sensors
 %-------------------
-% PlotGyro(x_true,dt_p,z_GYR)
-% PlotGPS(x_true,x_EKF,dt_p,z_GPS)
-% PlotCSS
-% PlotMag
-% PlotST
+PlotGyro(x_true,dt_p,z_GYR)
+PlotGPS(x_true,dt_p,z_GPS)
+PlotST(x_true,dt_p,z_ST)
+PlotCSS(x_true,dt_p,z_CSS)
+PlotMag(x_true,dt_p,z_MAG)
 %-------------------
 
 % Plot Images

@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-st      = 10;                           % Simulation time (s)
+st      = 15;                           % Simulation time (s)
 dt_p    = 0.1;                          % Sample rate (s)
 n_s     = round(st/dt_p);               % Number of samples
 n_f     = 13;                           % Number of features
@@ -157,9 +157,9 @@ pixelSize_ET    = 1.74e-5;              % Pixel size   (m)
 
 % Star Tracker
 n_ST        = 4;                        % Number of measurements
-dt_ST       = 1;                        % Star tracker sampling rate (s)
-noise_ST    = 0.1;                      % Star tracker noise (deg)
-R_ST        = deg2rad(noise_ST*eye(n_ST));       % Star tracker noise matrix (rad)
+dt_ST       = 2;                       % Star tracker sampling rate (s)
+noise_ST    = 0.005;                      % Star tracker noise (deg)
+R_ST        = deg2rad(noise_ST)^2*eye(n_ST);       % Star tracker noise matrix (rad)
 
 z_ST        = zeros(n_ST,n_s);          % Star tracker measurements
 y_ST        = zeros(n_ST,n_s);          % Star tracker estimated measurements
@@ -167,7 +167,7 @@ K_ST        = zeros(n_x,n_ST,n_s);      % Star tracker Kalman Gain
 %---
 
 % Magnetometer
-n_MAG       = 4;                        % Number of measurements
+n_MAG       = 3;                        % Number of measurements
 dt_MAG      = 1;                        % Magnetometer sampling rate (s)
 noise_MAG   = 3;                        % Magnetometer noise (deg)
 R_MAG       = deg2rad(noise_MAG*eye(4));         % Magnetometer noise matrix (rad)
@@ -178,7 +178,7 @@ K_MAG       = zeros(n_x,n_MAG,n_s);     % Magnetometer Kalman Gain
 %---
 
 % Coarse Sun Sensor
-n_CSS       = 4;                        % Number of measurements
+n_CSS       = 3;                        % Number of measurements
 dt_CSS      = 1;                        % Coarse sun sensor sampling rate (s)
 noise_CSS   = 1e-6;                      % Coarse sun sensor noise (deg)
 R_CSS       = deg2rad(noise_CSS*eye(4));         % Coarse sun sensor noise matix (rad)
@@ -190,10 +190,10 @@ K_CSS       = zeros(n_x,n_CSS,n_s);     % Coarse sun sensor Kalman Gain
 
 % Gyroscope
 n_GYR       = 3;                        % Number of measurements
-dt_GYR      = 1;                        % Gyroscope sampling samping rate (s)
-noise_GYR   = 1e-6;                      % Gyroscope sensor noise (deg)
-R_GYR       = deg2rad(noise_GYR*eye(3));% Gyroscope sensor noise matrix
-driftRate_GYR = 0;                      % Gyroscope drift rate (deg/s)
+dt_GYR      = 1/50;                        % Gyroscope sampling samping rate (s)
+noise_GYR   = 1e-2;                      % Gyroscope sensor noise (deg)
+R_GYR       = deg2rad(noise_GYR)^2*eye(3);% Gyroscope sensor noise matrix
+driftRate_GYR = deg2rad(1e-6);                      % Gyroscope drift rate (deg/s)
 
 drift_GYR   = zeros(n_GYR,1);           % Gyroscope drift buffer
 z_GYR       = zeros(n_GYR,n_s);         % Gyroscope measurement
@@ -204,9 +204,9 @@ K_GYR       = zeros(n_x,n_GYR,n_s);     % Gyroscope Kalman Gain
 % GPS
 n_GPS       = 3;                        % Number of measurements
 dt_GPS      = 1;                        % GPS sampling samping rate (s)
-noise_GPS   = 1e-6;                      % GPS sensor noise (km)
-R_GPS       = noise_GPS*eye(3);         % GPS noise matrix
-driftRate_GPS   = 0;                 % GPS drift rate (km)
+noise_GPS   = 1e-3;                      % GPS sensor noise (km)
+R_GPS       = noise_GPS^2*eye(3);         % GPS noise matrix
+driftRate_GPS   = 1e-6;                 % GPS drift rate (km)
 
 drift_GPS   = zeros(n_GPS,1);           % GPS drift buffer
 z_GPS       = zeros(n_GPS,n_s);         % GPS measurement
@@ -264,46 +264,52 @@ for r = 1:n_s-1
     % Sensors
 
     % GPS
-
-
-
-
+    j = mod(t,dt_GPS);
+    if j == 0
+        z_GPS(:,r) = GPS(x_true(1:3,r), noise_GPS, drift_GPS, driftRate_GPS);
+    else
+        z_GPS(:,r) = [0 0 0].';
+    end
     %---
 
     % GYR
-
-    %---
-
-    % CSS
-
-
-    %---
-
-    % 
-
-   
-    j = mod(t,1);
+    j = mod(t,dt_GYR);
     if j == 0
-        z_CSS(:,r) = CoarseSunSensor(x_true(7:10,r),noise_CSS);
-        z_GPS(:,r) = GPS(x_true(1:3,r), noise_GPS, drift_GPS, driftRate_GPS);
-        z_GYR(:,r) = Gyro(x_true(11:13,r),noise_GYR,drift_GYR,driftRate_GYR);
+        z_GYR(:,r) = Gyro(x_true(11:13,r), noise_GYR, drift_GYR, driftRate_GYR);
     else
-        z_CSS(:,r) = [0 0 0 0].';
-        z_GPS(:,r) = [0 0 0].';
         z_GYR(:,r) = [0 0 0].';
     end
     %---
 
+    % ST
+    j = mod(t,dt_ST);
+    if j == 0
+        z_ST(:,r) = StarTracker(x_true(7:10,r), noise_ST);
+    else
+        z_ST(:,r) = [0 0 0 0].';
+    end
+    %---
 
 
+    % CSS
+    j = mod(t,dt_CSS);
+    if j == 0
+        z_CSS(:,r) = CoarseSunSensor(x_true(7:10,r), noise_CSS);
+    else
+        z_CSS(:,r) = [0 0 0].';
+    end
+    %---
 
+    % MAG
+    j = mod(t,dt_MAG);
+    if j == 0
+        z_MAG(:,r) = Magnetometer(x_true(1:3,r),x_true(7:10,r),noise_MAG,0,t,we_p);
+    else
+        z_MAG(:,r) = [0 0 0].';
+    end
+    %---
 
-
-
-
-
-
-
+   
     % EKF:
     % [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...
     %     catalogue_eci(:,:,r),x_EKF(:,r),P_EKF(:,:,r),I_f,Q_f,dt_p,Mu_f,Re_f,J2_f, ...

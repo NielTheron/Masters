@@ -1,15 +1,26 @@
-function PlotSensors(x_true,dt,ST_measurement,MAG_measurement,CSS_measurement)
-figure('Name',"Sensor Comparison")
-hold on
-n = (0:size(x_true,2)-1)*dt;
-plot(n,x_true(7:10,:))
-plot(n,ST_measurement)
-plot(n,MAG_measurement)
-plot(n,CSS_measurement)
-title("Abstract Attitude Sensor Measurements")
-% legend("AutoUpdate","on");
-xlabel("Time (s)");
-ylabel("Magnitude");
-grid on
-end
+function PlotCSS(x_true, dt, CSS_measurement)
+    figure('Name', "Sensor Comparison")
+    hold on
+    n = (0:size(x_true, 2)-1) * dt;
 
+    % Colors for each axis
+    colors = {'b', 'g', 'r'};
+    labels = {'x', 'y', 'z'};
+
+    for i = 1:3
+        % Get non-zero indices
+        valid_idx = CSS_measurement(i,:) ~= 0;
+        n_valid = n(valid_idx);
+        CSS_valid = CSS_measurement(i, valid_idx);
+
+        % Plot filled scatter points
+        scatter(n_valid, CSS_valid, 20, colors{i}, 'filled', ...
+            'DisplayName', sprintf('CSS %s', labels{i}));
+    end
+
+    title("Abstract Coarse Sun Sensor Measurements");
+    xlabel("Time (s)");
+    ylabel("Magnitude");
+    legend;
+    grid on
+end

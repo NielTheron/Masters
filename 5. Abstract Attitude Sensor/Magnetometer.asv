@@ -85,7 +85,7 @@ qs = attitude(1); qx = attitude(2); qy = attitude(3); qz = attitude(4);
 
 R_ECI2Body = [1-2*(qy^2+qz^2),  2*(qx*qy-qs*qz),  2*(qx*qz+qs*qy);
               2*(qx*qy+qs*qz),  1-2*(qx^2+qz^2),  2*(qy*qz-qs*qx);
-              2*(qx*qz-qs*qy),  2*(qy*qz+qs*qx),  1-2*(qx^2+qy^2)].';
+              2*(qx*qz-qs*qy),  2*(qy*qz+qs*qx),  1-2*(qx^2+qy^2)];
 
 mag_field_body = R_ECI2Body * mag_field_ECI;
 
