@@ -98,12 +98,6 @@ for i = 1:n
     H1(:, i) = (h_plus - h_minus) / (2 * epsilon);
 end
 
-%==========================================================================
-% Apply Precision Rounding for Numerical Stability
-%==========================================================================
-% Round to 4 significant figures to match analytical precision
-H1 = round(H1, 4, "significant");
-
 end
 
 %==========================================================================

@@ -108,11 +108,4 @@ end
 %% Step 8: Normalize and return result
 Mag_B_est = mag_field_body / norm(mag_field_body);
 
-% Debug output (remove in final version)
-if false  % Set to true for debugging
-    fprintf('Lat: %.1f°, Lon: %.1f°\n', lat_deg, lon_deg);
-    fprintf('Mag field ECI: [%.3f, %.3f, %.3f]\n', mag_field_ECI);
-    fprintf('Mag field Body: [%.3f, %.3f, %.3f]\n', Mag_B_est);
-end
-
 end

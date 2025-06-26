@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-st      = 10;                           % Simulation time (s)
+st      = 6000;                           % Simulation time (s)
 dt_p    = 0.1;                          % Sample rate (s)
 n_s     = round(st/dt_p);               % Number of samples
 n_f     = 10;                           % Number of features
@@ -133,8 +133,8 @@ P_EKF(:,:,1) = TuneP();                       % Covariance matrix
 
 % Initialsie Earth Tracker Varaibles
 n_ET     = 3;                           % Number of measurements
-dt_ET    = 1;                           % Earth tracker sample rate (s)
-noise_ET = 0;
+dt_ET    = 0.2;                           % Earth tracker sample rate (s)
+noise_ET = 5;
 R_ET     = noise_ET*eye(3);             % Measurement Noise Covariance Matrix
 
 z_ET     = zeros(n_ET,n_f,n_s);         % Earth tracker measurement (km)
@@ -158,7 +158,7 @@ pixelSize_ET    = 1.74e-5;              % Pixel size   (m)
 % Star Tracker
 n_ST        = 4;                        % Number of measurements
 dt_ST       = 0.1;                      % Star tracker sampling rate (s)
-noise_ST    = 0.005;                    % Star tracker noise (deg)
+noise_ST    = 0.005;                        % Star tracker noise (deg)
 R_ST        = deg2rad(noise_ST)^2*eye(n_ST);    % Star tracker noise matrix (rad)
 
 z_ST        = zeros(n_ST,n_s);          % Star tracker measurements
@@ -169,9 +169,9 @@ K_ST        = zeros(n_x,n_ST,n_s);      % Star tracker Kalman Gain
 % Gyroscope
 n_GYR       = 3;                        % Number of measurements
 dt_GYR      = 0.1;                      % Gyroscope sampling samping rate (s)
-noise_GYR   = 1e-2;                     % Gyroscope sensor noise (deg)
+noise_GYR   = 1;                     % Gyroscope sensor noise (deg)
 R_GYR       = deg2rad(noise_GYR)^2*eye(3);  % Gyroscope sensor noise matrix
-driftRate_GYR = deg2rad(1e-6);          % Gyroscope drift rate (deg/s)
+driftRate_GYR = deg2rad(1);          % Gyroscope drift rate (deg/s)
 
 drift_GYR   = zeros(n_GYR,1);           % Gyroscope drift buffer
 z_GYR       = zeros(n_GYR,n_s);         % Gyroscope measurement
@@ -182,9 +182,9 @@ K_GYR       = zeros(n_x,n_GYR,n_s);     % Gyroscope Kalman Gain
 % GPS
 n_GPS       = 3;                        % Number of measurements
 dt_GPS      = 0.1;                      % GPS sampling samping rate (s)
-noise_GPS   = 1e-3;                     % GPS sensor noise (km)
+noise_GPS   = 1;                     % GPS sensor noise (km)
 R_GPS       = noise_GPS^2*eye(3);       % GPS noise matrix
-driftRate_GPS   = 1e-6;                 % GPS drift rate (km)
+driftRate_GPS   = 1;                 % GPS drift rate (km)
 
 drift_GPS   = zeros(n_GPS,1);           % GPS drift buffer
 z_GPS       = zeros(n_GPS,n_s);         % GPS measurement
@@ -197,25 +197,26 @@ K_GPS       = zeros(n_x,n_GPS,n_s);     % GPS Kalman Gain
 
 % Magnetometer
 n_MAG       = 3;                        % Number of measurements
-dt_MAG      = 1;                        % Magnetometer sampling rate (s)
+dt_MAG      = 0.5;                        % Magnetometer sampling rate (s)
 noise_MAG   = 3;                        % Magnetometer noise (deg)
+angle_MAG   = 0;                        % Declination angle (deg)
 z_MAG       = zeros(n_MAG,n_s);         % Magnetometer measurements
 %---
 
 % Coarse Sun Sensor
 n_CSS       = 3;                        % Number of measurements
-dt_CSS      = 1;                        % Coarse sun sensor sampling rate (s)
-noise_CSS   = 1e-6;                     % Coarse sun sensor noise (deg)
+dt_CSS      = 0.5;                        % Coarse sun sensor sampling rate (s)
+noise_CSS   = 5;                     % Coarse sun sensor noise (deg)
 z_CSS       = zeros(n_CSS,n_s);         % Coarse sun sensor measurement
 %---
 
 % TRIAD
 n_TRIAD       = 4;
 % dt_TRIAD      = 0.1;
-noise_TRIAD   = 1e-6;
+noise_TRIAD   = 1;
 R_TRIAD       = deg2rad(noise_TRIAD*eye(4));    % TRIAD noise matix
 
-z_TRIAD       = zeros(n_TRIAD,1);
+z_TRIAD       = zeros(n_TRIAD,n_s);
 y_TRIAD       = zeros(n_TRIAD,n_s);     % TRIAD estimated measurement
 K_TRIAD       = zeros(n_x,n_TRIAD,n_s); % TRIAD Kalman Gain
 %---
@@ -230,9 +231,6 @@ d = uiprogressdlg(fig, 'Title','Running Simulation', ...
 startTime = tic;
 %---
 
-test = zeros(3,n_f,n_s);
-[refImg, R] = readgeoraster("ParisStrip.tif");
-
 %==========================================================================
 %% Run Simulation =========================================================
 for r = 1:n_s-1
@@ -245,46 +243,49 @@ for r = 1:n_s-1
     x_true(:,r+1) = Plant(x_true(:,r), dt_p, I_p, Mu_p, Re_p, J2_p);
     %----------------------------------------------------------------------
     
-    % Image generator -----------------------------------------------------
-    satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
-    % SaveSatelliteImages(satelliteImage,r);
-    % ----------------------------------------------------------------------
-
-    % Feature Detection ---------------------------------------------------
-    [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
-    % SaveFeatureImages(grayImage, f_m(:,:,r),r);
-    %----------------------------------------------------------------------
-
-    % % Catalogue Creation --------------------------------------------------
-    catalogue_geo(:,:,r) = FeatureGeolocation(f_m(:,:,r), satelliteImage, x_true(1:3,r) , x_true(7:10,r), focalLength_cam, pixelSize_cam);
-    for i = 1:n_f
-         catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
-    end
+    % % Earth Tracker Measurement -------------------------------------------
+    % if mod(t,dt_ET) == 0
+    %     % Image generator -----------------------------------------------------
+    %     satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
+    %     % SaveSatelliteImages(satelliteImage,r);
+    %     % ----------------------------------------------------------------------
+    % 
+    %     % Feature Detection ---------------------------------------------------
+    %     [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
+    %     % SaveFeatureImages(grayImage, f_m(:,:,r),r);
+    %     %----------------------------------------------------------------------
+    % 
+    %     % % Catalogue Creation --------------------------------------------------
+    %     catalogue_geo(:,:,r) = FeatureGeolocation(f_m(:,:,r), satelliteImage, x_true(1:3,r) , x_true(7:10,r), focalLength_cam, pixelSize_cam);
+    %     for i = 1:n_f
+    %         catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
+    %     end
+    %     % %----------------------------------------------------------------------
+    % 
+    %     z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
+    % else
+    %     z_ET(:,:,r) = zeros(n_ET,n_f);
+    % end
     % %----------------------------------------------------------------------
 
-    % Earth Tracker Measurement -------------------------------------------
-    z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
-    test(:,:,r) = HFunction(x_true(:,r),catalogue_eci(:,:,r));
-    %----------------------------------------------------------------------
-
-    % % Sensors -----------------------------------------------------------
-    % [z_GPS, z_GYR, z_ST, z_CSS, z_MAG, z_TRIAD] = ...
-    %     SampleSensors(x_true, t, we_p, ...
-    %     dt_GPS, noise_GPS, drift_GPS, driftRate_GPS, ...
-    %     dt_GYR, noise_GYR, drift_GYR, driftRate_GYR, ...
-    %     dt_ST, noise_ST, ...
-    %     dt_CSS, noise_CSS, ...
-    %     dt_MAG, noise_MAG,angle_MAG);
-    % %--------------------------------------------------------------------
+    % Sensors -----------------------------------------------------------
+    [z_GPS(:,r), z_GYR(:,r), z_ST(:,r), z_CSS(:,r), z_MAG(:,r), z_TRIAD(:,r)] = ...
+        SampleSensors(x_true(:,r), t, we_p, ...
+        dt_GPS, noise_GPS, drift_GPS, driftRate_GPS, ...
+        dt_GYR, noise_GYR, drift_GYR, driftRate_GYR, ...
+        dt_ST, noise_ST, ...
+        dt_CSS, noise_CSS, ...
+        dt_MAG, noise_MAG,angle_MAG);
+    % --------------------------------------------------------------------
 
     % % EKF ---------------------------------------------------------------
     % [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...
     %     catalogue_eci(:,:,r),x_EKF(:,r),P_EKF(:,:,r),I_f,Q_f,dt_p,Mu_f,Re_f,J2_f, ...
     %     z_ET(:,:,r), z_TRIAD(:,r), z_ST(:,r), z_GPS(:,r), z_GYR(:,r), ...
     %     R_ET, R_TRIAD, R_ST, R_GPS, R_GYR);
-    % %--------------------------------------------------------------------
+    % %----------------------------------------------------------------------
 
-    % Progress bar
+    % Progress bar --------------------------------------------------------
     elapsedTime = toc(startTime);
     progress = r / (n_s-1);
     estTotalTime = elapsedTime / progress;
@@ -292,7 +293,7 @@ for r = 1:n_s-1
     d.Value = progress;
     d.Message = sprintf('Elapsed: %.2fs | %d%% | Est. remaining: %.2fs | Sample: %d | Footage Time: %.2fs | Time per sample: %.2fs', ...
         elapsedTime, round(progress*100), estRemaining,r+1,t,elapsedTime/r);
-    %---
+    %----------------------------------------------------------------------
 end
 
 %==========================================================================

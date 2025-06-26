@@ -1,16 +1,32 @@
 function PlotMeasurementError(y_true,y_est,n_f,dt)
 
-figure('Name','Output Error')
-hold on
-n = (0:size(y_true,3)-1)*dt;
-for i = 1:n_f
-    plot(n,squeeze(y_true(1,i,:))-squeeze(y_est(1,i,:)));
-    plot(n,squeeze(y_true(2,i,:))-squeeze(y_est(2,i,:)));
-    plot(n,squeeze(y_true(3,i,:))-squeeze(y_est(3,i,:)));
-end
-title("Measurement Error")
-xlabel("Time (s)")
-ylabel("Distance (km)")
-grid on
-hold off
+    figure('Name', 'Measurement Error')
+    hold on
+    n = (0:size(y_est,3)-1) * dt;
+
+    y_err = y_true - y_est;
+
+    % Axis colors and labels
+    colors = {'b', 'g', 'r'};
+    labels = {'x', 'y', 'z'};
+
+    for i = 1:n_f
+        for k = 1:3  % x, y, z components
+            y_vals = squeeze(y_err(k, i, :))';  % Get 1×time vector
+            valid_idx = y_vals ~= 0;
+            n_valid = n(valid_idx);
+            y_valid = y_vals(valid_idx);
+
+            % Scatter plot for non-zero measurements
+            scatter(n_valid, y_valid, 20, colors{k}, 'filled', ...
+                'DisplayName', sprintf('Feature %d %s', i, labels{k}));
+        end
+    end
+
+    title("Measurement Error")
+    xlabel("Time (s)")
+    ylabel("Distance (km) in Body Frame")
+    % legend('show')
+    grid on
+    hold off
 end

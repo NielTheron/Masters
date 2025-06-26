@@ -16,7 +16,7 @@ PlotState(x_true,dt_p)
 
 % Plot Estimator
 %---------------------
-
+% PlotCovariance(x_true,x_EKF,P_EKF,n_s)
 
 %---------------------
 
@@ -33,10 +33,10 @@ PlotState(x_true,dt_p)
 %-------------------
 % PlotGyro(x_true,dt_p,z_GYR)
 % PlotGPS(x_true,dt_p,z_GPS)
-% PlotST(x_true,dt_p,z_ST)
-% PlotCSS(x_true,dt_p,z_CSS)
-% PlotMag(x_true,dt_p,z_MAG)
-% PlotTRIAD(x_true,dt_p,z_TRIAD)
+PlotST(x_true,dt_p,z_ST)
+PlotCSS(x_true,dt_p,z_CSS)
+PlotMag(x_true,dt_p,z_MAG)
+PlotTRIAD(x_true,dt_p,z_TRIAD)
 %-------------------
 
 % Plot Images

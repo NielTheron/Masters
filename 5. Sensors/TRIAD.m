@@ -75,25 +75,21 @@ R_est = T_body * T_ref.';
 
 %% Step 5: Convert to Quaternion
 %==========================================================================
-    % Get initial quaternion
-    q_est = rotm2quat(R_est).';  % [qs qx qy qz]
-    
-    % CORRECTION MATRIX: Apply the fixes you identified
-    % Based on your observation: q1 flipped, q2 and q3 swapped
-    q_corrected = zeros(4,1);
-    q_corrected(1) = q_est(1);   % q0 (qs) is correct
-    q_corrected(2) = -q_est(2);  % q1 (qx) needs sign flip
-    q_corrected(3) = q_est(4);   % q2 (qy) gets q3's value  
-    q_corrected(4) = q_est(3);   % q3 (qz) gets q2's value
-    
-    % Ensure unit quaternion
-    q_est = q_corrected / norm(q_corrected);
-    
-    % Enforce positive scalar part for consistency
-    if q_est(1) < 0
-        q_est = -q_est;
-    end
-    
-    % Recompute rotation matrix from corrected quaternion
-    R_est = quat2rotm(q_est.');
+% Get initial quaternion
+q_est = rotm2quat(R_est).';  % [qs qx qy qz]
+
+% CORRECTION MATRIX: Apply the fixes you identified
+% Based on your observation: q1 flipped, q2 and q3 swapped
+q_corrected = zeros(4,1);
+q_corrected(1) = q_est(1);   % q0 (qs) is correct
+q_corrected(2) = -q_est(2);  % q1 (qx) needs sign flip
+q_corrected(3) = q_est(4);   % q2 (qy) gets q3's value
+q_corrected(4) = q_est(3);   % q3 (qz) gets q2's value
+
+% Ensure unit quaternion
+q_est = q_corrected / norm(q_corrected);
+
+% Recompute rotation matrix from corrected quaternion
+R_est = quat2rotm(q_est.');
+
 end

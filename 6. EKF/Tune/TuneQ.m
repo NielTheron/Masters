@@ -1,6 +1,6 @@
 function Q = TuneQ()
-sigma_pos = 1;  % m
-sigma_vel = 0.1; % m/s
+sigma_pos = 2;  % km
+sigma_vel = 3; % km/s
 sigma_q = 1e-4;
 sigma_w = 1e-4;  % rad/s
 

@@ -91,12 +91,6 @@ for i = 1:numFeatures
     
     discriminant = b^2 - 4*a*c;
     
-    if discriminant < 0
-        % No intersection - ray doesn't hit Earth
-        fprintf('Feature %d: Ray does not intersect Earth\n', i);
-        continue;
-    end
-    
     % Take the closer intersection (smaller t)
     t1 = (-b - sqrt(discriminant)) / (2*a);
     t2 = (-b + sqrt(discriminant)) / (2*a);
@@ -106,9 +100,6 @@ for i = 1:numFeatures
         t = t1;
     elseif t2 > 0
         t = t2;
-    else
-        fprintf('Feature %d: Intersection behind satellite\n', i);
-        continue;
     end
     
     % Calculate intersection point in ECI
@@ -123,10 +114,5 @@ for i = 1:numFeatures
     
     featureGeoLocations(:, i) = [lla(1); lla(2); lla(3)/1000];  % lat, lon (deg), alt (km)
 end
-
-%% Report Results ========================================================
-numGeolocated = sum(any(featureGeoLocations(1:2,:) ~= 0, 1));
-fprintf('Geolocated %d of %d features (%.1f%%)\n', ...
-    numGeolocated, numFeatures, 100 * numGeolocated / numFeatures);
 
 end
