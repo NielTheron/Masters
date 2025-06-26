@@ -19,26 +19,24 @@ addpath("3. Image Generator\FeatureImages\")
 
 addpath("4. Earth Tracker\")
 
-addpath("5. Abstract Attitude Sensor\")
+addpath("5. Sensors\")
 
-addpath("6. Abstract Position Sensor\")
+addpath("6. EKF\")
+addpath("6. EKF\Prediction\")
+addpath("6. EKF\Tune\")
+addpath("6. EKF\Update\")
 
-addpath("7. EKF\")
-addpath("7. EKF\Prediction\")
-addpath("7. EKF\Tune\")
-addpath("7. EKF\Update\")
+addpath("7. Transformations\")
 
-addpath("8. Transformations\")
-
-addpath("9. Plots\")
-addpath("9. Plots\Plot Catalogues\")
-addpath("9. Plots\Plot Earth Tracker\")
-addpath("9. Plots\Plot Estimator\")
-addpath("9. Plots\Plot Sensors\")
-addpath("9. Plots\Plot Images\")
-addpath("9. Plots\Plot System States\")
-addpath("9. Plots\Plot Visual\")
-addpath("9. Plots\Videos")
+addpath("8. Plots\")
+addpath("8. Plots\Plot Catalogues\")
+addpath("8. Plots\Plot Earth Tracker\")
+addpath("8. Plots\Plot Estimator\")
+addpath("8. Plots\Plot Sensors\")
+addpath("8. Plots\Plot Images\")
+addpath("8. Plots\Plot System States\")
+addpath("8. Plots\Plot Visual\")
+addpath("8. Plots\Videos")
 end
 
 %==========================================================================

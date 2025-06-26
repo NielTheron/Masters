@@ -1,17 +1,18 @@
-function MakeFeatureVideo(dt)
+function MakeVideo(dt)
 
 % outputFolder = fullfile('C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\8. Plots\Videos');
-outputFolder = fullfile('C:\Users\22619291\OneDrive - Stellenbosch University\Desktop\Masters\9. Plots\Videos');
+outputFolder = fullfile('C:\Users\22619291\OneDrive - Stellenbosch University\Desktop\Masters\8. Plots\Videos');
+
 
 % Settings
-% imageFolder = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\FeatureImages';
-imageFolder = 'C:\Users\22619291\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\FeatureImages';
-outputVideoName = 'feature_video.mp4';
+% imageFolder = 'C:\Users\Niel\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\SatelliteImages';
+imageFolder = 'C:\Users\22619291\OneDrive - Stellenbosch University\Desktop\Masters\3. Image Generator\SatelliteImages';
+outputVideoName = 'satellite_video.mp4';
 videoPath = fullfile(outputFolder,outputVideoName);
 frameRate = 1/dt;  % frames per second
 
 % Get list of image files
-imageFiles = dir(fullfile(imageFolder, 'feature_image_*.png'));
+imageFiles = dir(fullfile(imageFolder, 'sat_image_*.png'));
 imageFiles = sort_nat({imageFiles.name});  % Ensure correct numeric order
 
 % Create VideoWriter object
@@ -48,3 +49,4 @@ function [cs,index] = sort_nat(c,mode)
 end
 
 end
+

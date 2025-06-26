@@ -231,7 +231,7 @@ startTime = tic;
 %---
 
 test = zeros(3,n_f,n_s);
-[refImg, R] = readgeoraster("ParisStrip.tif");
+[refImg, R] = readraster("ParisStrip.tif");
 
 %==========================================================================
 %% Run Simulation =========================================================
@@ -256,7 +256,7 @@ for r = 1:n_s-1
     %----------------------------------------------------------------------
 
     % % Catalogue Creation --------------------------------------------------
-    catalogue_geo(:,:,r) = FeatureGeolocation(f_m(:,:,r), satelliteImage, x_true(1:3,r) , x_true(7:10,r), focalLength_cam, pixelSize_cam);
+    catalogue_geo(:,:,r) = DirectGeolocation(f_m(:,:,r),satelliteImage,refImg, R);
     for i = 1:n_f
          catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
     end
