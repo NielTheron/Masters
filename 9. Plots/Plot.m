@@ -5,10 +5,6 @@
 % The purpose of this script is to plot all the graphs
 %==========================================================================
 
-%% Load path ==============================================================
-
-
-%==========================================================================
 %% === Plots ==============================================================
 
 % Plot System States
@@ -35,11 +31,12 @@ PlotState(x_true,dt_p)
 
 % Plot Sensors
 %-------------------
-PlotGyro(x_true,dt_p,z_GYR)
-PlotGPS(x_true,dt_p,z_GPS)
-PlotST(x_true,dt_p,z_ST)
-PlotCSS(x_true,dt_p,z_CSS)
-PlotMag(x_true,dt_p,z_MAG)
+% PlotGyro(x_true,dt_p,z_GYR)
+% PlotGPS(x_true,dt_p,z_GPS)
+% PlotST(x_true,dt_p,z_ST)
+% PlotCSS(x_true,dt_p,z_CSS)
+% PlotMag(x_true,dt_p,z_MAG)
+% PlotTRIAD(x_true,dt_p,z_TRIAD)
 %-------------------
 
 % Plot Images
@@ -62,12 +59,8 @@ PlotMag(x_true,dt_p,z_MAG)
 %--------------------
 % Plot3D(x_true,x_EKF)
 
-
-
 %---
 
 %==========================================================================
 
-% AnimatedSatelliteOrbit(x_true,dt_p)
-% Plot3D2(x_true)
 

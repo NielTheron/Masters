@@ -153,11 +153,11 @@ pixelSize_ET    = 1.74e-5;              % Pixel size   (m)
 %---
 
 %==========================================================================
-%% Initialise Sensors =====================================================
+%% Initialise Direct Sensors =====================================================
 
 % Star Tracker
 n_ST        = 4;                        % Number of measurements
-dt_ST       = 2;                       % Star tracker sampling rate (s)
+dt_ST       = 0.1;                       % Star tracker sampling rate (s)
 noise_ST    = 0.005;                      % Star tracker noise (deg)
 R_ST        = deg2rad(noise_ST)^2*eye(n_ST);       % Star tracker noise matrix (rad)
 
@@ -166,31 +166,9 @@ y_ST        = zeros(n_ST,n_s);          % Star tracker estimated measurements
 K_ST        = zeros(n_x,n_ST,n_s);      % Star tracker Kalman Gain
 %---
 
-% Magnetometer
-n_MAG       = 3;                        % Number of measurements
-dt_MAG      = 1;                        % Magnetometer sampling rate (s)
-noise_MAG   = 3;                        % Magnetometer noise (deg)
-R_MAG       = deg2rad(noise_MAG*eye(4));         % Magnetometer noise matrix (rad)
-
-z_MAG       = zeros(n_MAG,n_s);         % Magnetometer measurements
-y_MAG       = zeros(n_MAG,n_s);         % Magnetometer estimated measurements
-K_MAG       = zeros(n_x,n_MAG,n_s);     % Magnetometer Kalman Gain
-%---
-
-% Coarse Sun Sensor
-n_CSS       = 3;                        % Number of measurements
-dt_CSS      = 1;                        % Coarse sun sensor sampling rate (s)
-noise_CSS   = 1e-6;                      % Coarse sun sensor noise (deg)
-R_CSS       = deg2rad(noise_CSS*eye(4));         % Coarse sun sensor noise matix (rad)
-
-z_CSS       = zeros(n_CSS,n_s);         % Coarse sun sensor measurement
-y_CSS       = zeros(n_CSS,n_s);         % Coarse sun sensor estimated measurement
-K_CSS       = zeros(n_x,n_CSS,n_s);     % Coarse sun sensor Kalman Gain
-%---
-
 % Gyroscope
 n_GYR       = 3;                        % Number of measurements
-dt_GYR      = 1/50;                        % Gyroscope sampling samping rate (s)
+dt_GYR      = 0.1;                        % Gyroscope sampling samping rate (s)
 noise_GYR   = 1e-2;                      % Gyroscope sensor noise (deg)
 R_GYR       = deg2rad(noise_GYR)^2*eye(3);% Gyroscope sensor noise matrix
 driftRate_GYR = deg2rad(1e-6);                      % Gyroscope drift rate (deg/s)
@@ -203,7 +181,7 @@ K_GYR       = zeros(n_x,n_GYR,n_s);     % Gyroscope Kalman Gain
 
 % GPS
 n_GPS       = 3;                        % Number of measurements
-dt_GPS      = 1;                        % GPS sampling samping rate (s)
+dt_GPS      = 0.1;                        % GPS sampling samping rate (s)
 noise_GPS   = 1e-3;                      % GPS sensor noise (km)
 R_GPS       = noise_GPS^2*eye(3);         % GPS noise matrix
 driftRate_GPS   = 1e-6;                 % GPS drift rate (km)
@@ -213,6 +191,37 @@ z_GPS       = zeros(n_GPS,n_s);         % GPS measurement
 y_GPS       = zeros(n_GPS,n_s);         % GPS estimated measurement
 K_GPS       = zeros(n_x,n_GPS,n_s);     % GPS Kalman Gain
 %----
+
+
+
+
+%% Initialise TRIAD
+
+% Magnetometer
+n_MAG       = 3;                        % Number of measurements
+dt_MAG      = 0.1;                        % Magnetometer sampling rate (s)
+noise_MAG   = 3;                        % Magnetometer noise (deg)
+z_MAG       = zeros(n_MAG,n_s);         % Magnetometer measurements
+%---
+
+% Coarse Sun Sensor
+n_CSS       = 3;                        % Number of measurements
+dt_CSS      = 0.1;                        % Coarse sun sensor sampling rate (s)
+noise_CSS   = 1e-6;                      % Coarse sun sensor noise (deg)
+z_CSS       = zeros(n_CSS,n_s);         % Coarse sun sensor measurement
+%---
+
+% TRIAD
+n_TRIAD     = 4;
+dt_TRIAD    = 0.1;
+noise_TRIAD   = 1e-6;
+R_TRIAD       = deg2rad(noise_TRIAD*eye(4));         % TRIAD noise matix
+
+z_TRIAD       = zeros(n_TRIAD,1);
+y_TRIAD       = zeros(n_TRIAD,n_s);         % TRIAD estimated measurement
+K_TRIAD       = zeros(n_x,n_TRIAD,n_s);     % TRIAD Kalman Gain
+%---
+
 
 %==========================================================================
 %% Initialise Simulation ==================================================
@@ -308,6 +317,8 @@ for r = 1:n_s-1
         z_MAG(:,r) = [0 0 0].';
     end
     %---
+
+    z_TRIAD(:,r) = TRIAD(z_CSS(:,r),z_MAG(:,r),x_true(1:3,r),t,we_p);
 
    
     % EKF:
