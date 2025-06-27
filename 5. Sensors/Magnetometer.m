@@ -1,4 +1,4 @@
-function Mag_B_est = Magnetometer(r_ECI, attitude, noise_std_deg, inclination_deg, t, we)
+function Mag_B_est = Magnetometer(r_ECI, attitude, noise_std_deg, mag_angle, t, we)
 % Simulate a magnetometer that points toward geographic North Pole,
 % tangent to Earth's surface, with optional magnetic dip and noise.
 %
@@ -29,8 +29,7 @@ R_ECI2ECEF = [cos(theta_earth), sin(theta_earth), 0;
 r_ECEF = R_ECI2ECEF * r_ECI * 1000;  % Convert km to meters
 
 % Convert ECEF to geodetic coordinates
-[lat_deg, lon_deg, alt_m] = ecef2geodetic(r_ECEF(1), r_ECEF(2), r_ECEF(3), ...
-                                          wgs84Ellipsoid(), 'degrees');
+[lat_deg, lon_deg, alt_m] = ecef2geodetic(wgs84Ellipsoid("meter"),r_ECEF(1), r_ECEF(2), r_ECEF(3));
 lat_rad = deg2rad(lat_deg);
 lon_rad = deg2rad(lon_deg);
 
@@ -54,8 +53,8 @@ mag_field_tangent_ECEF = mag_field_tangent_ECEF / norm(mag_field_tangent_ECEF);
 %% Step 4: Apply magnetic inclination (dip angle)
 % Inclination rotates the field away from horizontal
 % Positive inclination tips the field downward (toward Earth center)
-if inclination_deg ~= 0
-    dip_rad = deg2rad(inclination_deg);
+if mag_angle ~= 0
+    dip_rad = deg2rad(mag_angle);
     
     % The dip rotation is around the east direction (perpendicular to both up and north)
     east_ECEF = cross(up_ECEF, mag_field_tangent_ECEF);

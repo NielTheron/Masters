@@ -1,59 +1,57 @@
-function mag_eci = ComputeMagneticFieldECI(r_ECI, t, we)
-% Simplified magnetic field model pointing toward magnetic north pole
-% with dipole characteristics
-
-% Convert ECI to ECEF for geographic calculations
-theta_earth = we * t;
+function mag_field_ECI = ComputeMagneticFieldECI(r_ECI, mag_angle, t, we)
+%% Step 1: Convert ECI position to geographic coordinates
+% Convert from ECI to ECEF (Earth-Centered Earth-Fixed)
+theta_earth = we * t;  % Earth rotation angle
 R_ECI2ECEF = [cos(theta_earth), sin(theta_earth), 0;
              -sin(theta_earth), cos(theta_earth), 0;
               0,                0,               1];
 
 r_ECEF = R_ECI2ECEF * r_ECI * 1000;  % Convert km to meters
 
-% Convert to geodetic coordinates
-
-    [lat_deg, lon_deg, alt_m] = ecef2geodetic(r_ECEF(1), r_ECEF(2), r_ECEF(3), ...
-                                              wgs84Ellipsoid(), 'degrees');
-
+% Convert ECEF to geodetic coordinates
+[lat_deg, lon_deg, alt_m] = ecef2geodetic(wgs84Ellipsoid("meter"),r_ECEF(1), r_ECEF(2), r_ECEF(3));
 lat_rad = deg2rad(lat_deg);
+lon_rad = deg2rad(lon_deg);
 
-% Simplified dipole magnetic field model
-% Magnetic North Pole position (approximate)
-mag_north_ECEF = [0; 0; 6378137];  % Simplified: on rotation axis
+%% Step 2: Calculate direction from satellite to North Pole in ECEF
+% North Pole position in ECEF coordinates
+north_pole_ECEF = [0; 0; 6378137];  % Approximately on Z-axis in meters
 
-% Vector from satellite to magnetic north in ECEF
-to_mag_north_ECEF = mag_north_ECEF - r_ECEF;
-to_mag_north_ECEF = to_mag_north_ECEF / norm(to_mag_north_ECEF);
+% Vector from satellite to North Pole in ECEF
+to_north_pole_ECEF = north_pole_ECEF - r_ECEF;
+to_north_pole_ECEF = to_north_pole_ECEF / norm(to_north_pole_ECEF);  % Normalize
 
-% Apply magnetic inclination based on latitude
-% Inclination angle (simplified model): I = arctan(2*tan(lat))
-inclination_rad = atan(2 * tan(lat_rad));
-
-% Local "up" vector (radially outward)
+%% Step 3: Make the field tangent to Earth's surface
+% Calculate the local "up" vector (radially outward from Earth center)
 up_ECEF = r_ECEF / norm(r_ECEF);
 
-% Make field tangent to surface, then apply inclination
-mag_tangent_ECEF = to_mag_north_ECEF - dot(to_mag_north_ECEF, up_ECEF) * up_ECEF;
-mag_tangent_ECEF = mag_tangent_ECEF / norm(mag_tangent_ECEF);
+% Project the north pole direction onto the plane tangent to Earth's surface
+% This removes the radial component, making it tangent to the surface
+mag_field_tangent_ECEF = to_north_pole_ECEF - dot(to_north_pole_ECEF, up_ECEF) * up_ECEF;
+mag_field_tangent_ECEF = mag_field_tangent_ECEF / norm(mag_field_tangent_ECEF);
 
-% Apply inclination (rotate toward/away from Earth center)
-if abs(inclination_rad) > 1e-6
-    % East direction for rotation axis
-    east_ECEF = cross(up_ECEF, mag_tangent_ECEF);
+%% Step 4: Apply magnetic inclination (dip angle)
+% Inclination rotates the field away from horizontal
+% Positive inclination tips the field downward (toward Earth center)
+if mag_angle ~= 0
+    dip_rad = deg2rad(mag_angle);
+    
+    % The dip rotation is around the east direction (perpendicular to both up and north)
+    east_ECEF = cross(up_ECEF, mag_field_tangent_ECEF);
     east_ECEF = east_ECEF / norm(east_ECEF);
     
-    % Rodrigues rotation formula
-    cos_inc = cos(inclination_rad);
-    sin_inc = sin(inclination_rad);
+    % Rodrigues' rotation formula to rotate around east axis
+    cos_dip = cos(dip_rad);
+    sin_dip = sin(dip_rad);
     
-    mag_field_ECEF = cos_inc * mag_tangent_ECEF + sin_inc * cross(east_ECEF, mag_tangent_ECEF);
+    % Rotate the tangent field toward the up direction by inclination angle
+    mag_field_ECEF = cos_dip * mag_field_tangent_ECEF + sin_dip * cross(east_ECEF, mag_field_tangent_ECEF);
 else
-    mag_field_ECEF = mag_tangent_ECEF;
+    mag_field_ECEF = mag_field_tangent_ECEF;
 end
 
-% Convert back to ECI frame
-R_ECEF2ECI = R_ECI2ECEF';
-mag_eci = R_ECEF2ECI * mag_field_ECEF;
-mag_eci = mag_eci / norm(mag_eci);  % Normalize
+%% Step 5: Convert ECEF to ECI frame
+R_ECEF2ECI = R_ECI2ECEF';  % Transpose to get inverse rotation
+mag_field_ECI = R_ECEF2ECI * mag_field_ECEF;
 
 end

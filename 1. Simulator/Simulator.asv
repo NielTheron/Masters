@@ -17,7 +17,7 @@ clearvars;
 %% Simulation Parameters ==================================================
 
 % Simulation Parameters
-st      = 15;                           % Simulation time (s)
+st      = 6000;                           % Simulation time (s)
 dt_p    = 0.1;                          % Sample rate (s)
 n_s     = round(st/dt_p);               % Number of samples
 n_f     = 10;                           % Number of features
@@ -40,15 +40,15 @@ we_p = 0; %7.292e-5;                    % Rotational speed of earth (rad/s)
 %---
 
 % Initial States
-lat_p   = 48.858;                       % Lattitude (deg)
-lon_p   = 1.66;                         % Longitude (deg)
+lat_p   = 0; %48.858;                       % Lattitude (deg)
+lon_p   = 0; %1.66;                         % Longitude (deg)
 alt_p   = 500;                          % Altitude (km)
 rol_p   = 0;                            % Camera roll  Offset B/O (deg)
 yaw_p   = 0;                            % Camera Yaw   Offset B/O (deg)
 pit_p   = 0;                            % Camera Pitch Offset B/O (deg)
 wx_p    = 0;                            % Roll  rate B/O (deg/s)
-wy_p    = 10;                            % Yaw   rate B/O (deg/s)
-wz_p    = 10;                           % Pitch rate B/O (deg/s) 
+wy_p    = 0;                            % Yaw   rate B/O (deg/s)
+wz_p    = 0;                           % Pitch rate B/O (deg/s) 
 t_p     = 0;                            % Initial time (s)
 %---
 
@@ -109,8 +109,8 @@ rol_f   = 0;                        % Camera Roll  offset B/O (deg)
 yaw_f   = 0;                        % Camere Yaw   offset B/O (deg)
 pit_f   = 0;                        % Camera Pitch offset B/O (deg)
 wx_f    = 0;                        % Roll  rate B/O (deg/s)
-wy_f    = 10;                        % Yaw   rate B/O (deg/s)
-wz_f    = 10;                        % Pitch rate B/O (deg/s)
+wy_f    = 0;                        % Yaw   rate B/O (deg/s)
+wz_f    = 0;                        % Pitch rate B/O (deg/s)
 t_f     = 0;                        % Initial Time (s)
 %---
 
@@ -134,7 +134,7 @@ P_EKF(:,:,1) = TuneP();                       % Covariance matrix
 % Initialsie Earth Tracker Varaibles
 n_ET     = 3;                           % Number of measurements
 dt_ET    = 0.2;                           % Earth tracker sample rate (s)
-noise_ET = 0;
+noise_ET = 5;
 R_ET     = noise_ET*eye(3);             % Measurement Noise Covariance Matrix
 
 z_ET     = zeros(n_ET,n_f,n_s);         % Earth tracker measurement (km)
@@ -243,40 +243,40 @@ for r = 1:n_s-1
     x_true(:,r+1) = Plant(x_true(:,r), dt_p, I_p, Mu_p, Re_p, J2_p);
     %----------------------------------------------------------------------
     
-    % Earth Tracker Measurement -------------------------------------------
-    if mod(t,dt_ET) == 0
-        % Image generator -----------------------------------------------------
-        satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
-        % SaveSatelliteImages(satelliteImage,r);
-        % ----------------------------------------------------------------------
+    % % Earth Tracker Measurement -------------------------------------------
+    % if mod(t,dt_ET) == 0
+    %     % Image generator -----------------------------------------------------
+    %     satelliteImage = GenerateSatelliteImage(ax, x_true(1:3,r), x_true(4:6,r), x_true(7:10,r), imgWidth_cam, imgHeight_cam, focalLength_cam, pixelSize_cam);
+    %     % SaveSatelliteImages(satelliteImage,r);
+    %     % ----------------------------------------------------------------------
+    % 
+    %     % Feature Detection ---------------------------------------------------
+    %     [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
+    %     % SaveFeatureImages(grayImage, f_m(:,:,r),r);
+    %     %----------------------------------------------------------------------
+    % 
+    %     % % Catalogue Creation --------------------------------------------------
+    %     catalogue_geo(:,:,r) = FeatureGeolocation(f_m(:,:,r), satelliteImage, x_true(1:3,r) , x_true(7:10,r), focalLength_cam, pixelSize_cam);
+    %     for i = 1:n_f
+    %         catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
+    %     end
+    %     % %----------------------------------------------------------------------
+    % 
+    %     z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
+    % else
+    %     z_ET(:,:,r) = zeros(n_ET,n_f);
+    % end
+    % %----------------------------------------------------------------------
 
-        % Feature Detection ---------------------------------------------------
-        [f_m(:,:,r), grayImage] = FeaturePixelDetection(satelliteImage, n_f);
-        % SaveFeatureImages(grayImage, f_m(:,:,r),r);
-        %----------------------------------------------------------------------
-
-        % % Catalogue Creation --------------------------------------------------
-        catalogue_geo(:,:,r) = FeatureGeolocation(f_m(:,:,r), satelliteImage, x_true(1:3,r) , x_true(7:10,r), focalLength_cam, pixelSize_cam);
-        for i = 1:n_f
-            catalogue_eci(:,i,r) = ECR2ECI(LLA2ECR(catalogue_geo(:,i,r)),t,we_p);
-        end
-        % %----------------------------------------------------------------------
-
-        z_ET(:,:,r) = EarthTracker(f_m(:,:,r),imgWidth_ET,imgHeight_ET,focalLength_ET, pixelSize_ET, GSD_ET);
-    else
-        z_ET(:,:,r) = zeros(n_ET,n_f);
-    end
-    %----------------------------------------------------------------------
-
-    % Sensors -----------------------------------------------------------
-    [z_GPS(:,r), z_GYR(:,r), z_ST(:,r), z_CSS(:,r), z_MAG(:,r), z_TRIAD(:,r)] = ...
-        SampleSensors(x_true(:,r), t, we_p, ...
-        dt_GPS, noise_GPS, drift_GPS, driftRate_GPS, ...
-        dt_GYR, noise_GYR, drift_GYR, driftRate_GYR, ...
-        dt_ST, noise_ST, ...
-        dt_CSS, noise_CSS, ...
-        dt_MAG, noise_MAG,angle_MAG);
-    % --------------------------------------------------------------------
+    % % Sensors -----------------------------------------------------------
+    % [z_GPS(:,r), z_GYR(:,r), z_ST(:,r), z_CSS(:,r), z_MAG(:,r), z_TRIAD(:,r)] = ...
+    %     SampleSensors(x_true(:,r), t, we_p, ...
+    %     dt_GPS, noise_GPS, drift_GPS, driftRate_GPS, ...
+    %     dt_GYR, noise_GYR, drift_GYR, driftRate_GYR, ...
+    %     dt_ST, noise_ST, ...
+    %     dt_CSS, noise_CSS, ...
+    %     dt_MAG, noise_MAG,angle_MAG);
+    % % --------------------------------------------------------------------
 
     % EKF ---------------------------------------------------------------
     [y_ET(:,:,r), x_EKF(:,r+1), P_EKF(:,:,r+1), K_ET(:,:,:,r)] = EKF( ...

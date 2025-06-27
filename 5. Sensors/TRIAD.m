@@ -1,5 +1,5 @@
 
-function [q_est, R_est] = TRIAD(sun_body, mag_body, r_ECI, t, we)
+function [q_est, R_est] = TRIAD(sun_body, mag_body, mag_angle, r_ECI, t, we)
 %==========================================================================
 % TRIAD - Two-Vector Attitude Determination Algorithm
 %==========================================================================
@@ -41,7 +41,7 @@ r_ECI = r_ECI(:);
 sun_inertial = [1; 0; 0];  % Simplified sun model
 
 % 1.2: Magnetic field vector in inertial frame
-mag_inertial = ComputeMagneticFieldECI(r_ECI, t, we);
+mag_inertial = ComputeMagneticFieldECI(r_ECI, mag_angle, t, we);
 
 % Normalize reference vectors
 sun_inertial = sun_inertial / norm(sun_inertial);
@@ -83,8 +83,8 @@ q_est = rotm2quat(R_est).';  % [qs qx qy qz]
 q_corrected = zeros(4,1);
 q_corrected(1) = q_est(1);   % q0 (qs) is correct
 q_corrected(2) = -q_est(2);  % q1 (qx) needs sign flip
-q_corrected(3) = q_est(4);   % q2 (qy) gets q3's value
-q_corrected(4) = q_est(3);   % q3 (qz) gets q2's value
+q_corrected(3) = -q_est(3);   % q2 (qy) gets q3's value
+q_corrected(4) = -q_est(4);   % q3 (qz) gets q2's value
 
 % Ensure unit quaternion
 q_est = q_corrected / norm(q_corrected);

@@ -52,8 +52,7 @@ else
 end
 %---
 
-
-z_TRIAD = TRIAD(z_CSS,z_MAG,x_true(1:3),t,we_p);
+z_TRIAD = TRIAD(z_CSS,z_MAG,angle_MAG,x_true(1:3),t,we_p);
 
 end
 
